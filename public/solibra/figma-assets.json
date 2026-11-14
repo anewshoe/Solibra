@@ -1,0 +1,131 @@
+{
+  "fileKey": "Um2mpoMAJNKWRuubPDgnc0",
+  "assets": [
+    {
+      "name": "mascot",
+      "file": "mascot.svg",
+      "node": "4:8910",
+      "figmaConstant": "imgWelcome"
+    },
+    {
+      "name": "library",
+      "file": "library.svg",
+      "node": "4:8910",
+      "figmaConstant": "imgLibraryIcon"
+    },
+    {
+      "name": "nooks",
+      "file": "nooks.svg",
+      "node": "4:8910",
+      "figmaConstant": "imgNooksIcon"
+    },
+    {
+      "name": "messages",
+      "file": "messages.svg",
+      "node": "4:8910",
+      "figmaConstant": "imgMessagesIcon"
+    },
+    {
+      "name": "user",
+      "file": "user.svg",
+      "node": "4:8910",
+      "figmaConstant": "imgUserIcon"
+    },
+    {
+      "name": "bell",
+      "file": "bell.svg",
+      "node": "4:8910",
+      "figmaConstant": "imgBellIcon"
+    },
+    {
+      "name": "elena",
+      "file": "elena.png",
+      "node": "4:8923",
+      "figmaConstant": "imgElena"
+    },
+    {
+      "name": "sofia",
+      "file": "sofia.png",
+      "node": "4:8923",
+      "figmaConstant": "imgSofia"
+    },
+    {
+      "name": "mateo",
+      "file": "mateo.png",
+      "node": "4:8923",
+      "figmaConstant": "imgMateo"
+    },
+    {
+      "name": "kitchen-memory",
+      "file": "kitchen-memory.png",
+      "node": "4:8923",
+      "figmaConstant": "imgMemoryPhotograph"
+    },
+    {
+      "name": "tortilla-memory",
+      "file": "tortilla-memory.png",
+      "node": "4:8923",
+      "figmaConstant": "imgMemoryPhotograph1"
+    },
+    {
+      "name": "search",
+      "file": "search.svg",
+      "node": "4:8923",
+      "figmaConstant": "imgSearchIcon"
+    },
+    {
+      "name": "play",
+      "file": "play.svg",
+      "node": "4:8923",
+      "figmaConstant": "imgPlay"
+    },
+    {
+      "name": "family-window",
+      "file": "family-window.png",
+      "node": "4:8915",
+      "figmaConstant": "imgSundayFamilyPhotograph"
+    },
+    {
+      "name": "recipe-window",
+      "file": "recipe-window.png",
+      "node": "4:8915",
+      "figmaConstant": "imgFamilyRecipePhotograph"
+    },
+    {
+      "name": "vinyl-record",
+      "file": "vinyl-record.svg",
+      "node": "4:8915",
+      "figmaConstant": "imgVinylRecord"
+    },
+    {
+      "name": "record-label",
+      "file": "record-label.svg",
+      "node": "4:8915",
+      "figmaConstant": "imgRecordLabel"
+    },
+    {
+      "name": "spindle",
+      "file": "spindle.svg",
+      "node": "4:8915",
+      "figmaConstant": "imgSpindle"
+    },
+    {
+      "name": "envelope-fold",
+      "file": "envelope-fold.svg",
+      "node": "4:8915",
+      "figmaConstant": "imgEnvelopeFold"
+    },
+    {
+      "name": "mascot-listening",
+      "file": "mascot-listening.svg",
+      "node": "4:8909",
+      "figmaConstant": "imgListening"
+    },
+    {
+      "name": "soft-sunlight",
+      "file": "soft-sunlight.svg",
+      "node": "4:8909",
+      "figmaConstant": "imgSoftSunlightAcrossTheCreamWall"
+    }
+  ]
+}
