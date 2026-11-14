@@ -13,6 +13,7 @@ export const TARGET_LANGUAGES: readonly TargetLanguage[] = [
   { code: 'ko', label: 'Korean' },
   { code: 'ja', label: 'Japanese' },
   { code: 'hi', label: 'Hindi' },
+  { code: 'te', label: 'Telugu' },
   { code: 'tl', label: 'Tagalog' },
   { code: 'fr', label: 'French' },
   { code: 'pt', label: 'Portuguese' },
@@ -35,6 +36,7 @@ const ISO_639_3_TO_1: Record<string, string> = {
   kor: 'ko',
   jpn: 'ja',
   hin: 'hi',
+  tel: 'te',
   tgl: 'tl',
   fil: 'tl',
   fra: 'fr',
@@ -59,6 +61,9 @@ const LANGUAGE_LABELS: Record<string, string> = {
 export function isTargetLanguage(code: string): boolean {
   return TARGET_LANGUAGE_CODES.has(code);
 }
+
+export const SUPPORTED_LANGUAGE_MESSAGE =
+  `Choose a supported targetLanguage: ${TARGET_LANGUAGES.map(({ code }) => code).join(', ')}.`;
 
 /**
  * Collapse region tags and ISO 639-3 codes to the short code used by the API.

@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { TARGET_LANGUAGES } from '@/lib/voice/languages';
-import { filenameForAudio } from '@/lib/voice/audio';
-import type { VoiceProcessResult } from '@/lib/voice/types';
+import { AUDIO_SIZE_LABEL, filenameForAudio } from '@/lib/voice/audio';
+import type { VoiceProcessResult, VoiceTranscript, VoiceTranslationFailure } from '@/lib/voice/types';
 
 function formatElapsed(elapsedMs: number): string {
   const totalSeconds = Math.floor(elapsedMs / 1000);
@@ -20,6 +20,7 @@ export default function VoiceDevPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [result, setResult] = useState<VoiceProcessResult | null>(null);
+  const [transcript, setTranscript] = useState<VoiceTranscript | null>(null);
   const requestRef = useRef<AbortController | null>(null);
 
   useEffect(() => () => {
@@ -33,6 +34,7 @@ export default function VoiceDevPage() {
     setSubmitting(false);
     setSubmitError(null);
     setResult(null);
+    setTranscript(null);
   }
 
   function discard() {
@@ -45,7 +47,7 @@ export default function VoiceDevPage() {
     void recorder.startRecording();
   }
 
-  const canSubmit = recorder.audioBlob !== null && !submitting && recorder.status === 'stopped';
+  const canSubmit = recorder.audioBlob !== null && !submitting && !result && recorder.status === 'stopped';
 
   async function submitRecording() {
     if (!canSubmit || !recorder.audioBlob || requestRef.current) return;
@@ -56,23 +58,25 @@ export default function VoiceDevPage() {
     setSubmitError(null);
     setResult(null);
 
-    const body = new FormData();
-    body.append(
-      'audio',
-      recorder.audioBlob,
-      filenameForAudio(recorder.mimeType ?? '')
-    );
-    body.append('targetLanguage', targetLanguage);
+    const audioBody = new FormData();
+    if (!transcript) {
+      audioBody.append('audio', recorder.audioBlob, filenameForAudio(recorder.mimeType ?? ''));
+      audioBody.append('targetLanguage', targetLanguage);
+    }
 
     try {
-      const response = await fetch('/api/voice/process', {
+      const response = await fetch(transcript ? '/api/voice/translate' : '/api/voice/process', {
         method: 'POST',
-        body,
+        headers: transcript ? { 'Content-Type': 'application/json' } : undefined,
+        body: transcript ? JSON.stringify({ ...transcript, targetLanguage }) : audioBody,
         signal: controller.signal,
       });
       const payload: unknown = await response.json().catch(() => null);
       if (requestRef.current !== controller) return;
       if (!response.ok) {
+        if (isTranslationFailure(payload)) {
+          setTranscript({ transcript: payload.transcript, originalLanguage: payload.originalLanguage });
+        }
         setSubmitError(
           payload && typeof payload === 'object' && 'error' in payload && typeof payload.error === 'string'
             ? payload.error
@@ -87,6 +91,7 @@ export default function VoiceDevPage() {
         return;
       }
       setResult(payload);
+      setTranscript({ transcript: payload.transcript, originalLanguage: payload.originalLanguage });
     } catch {
       if (requestRef.current !== controller) return;
       setSubmitError(controller.signal.aborted
@@ -121,7 +126,7 @@ export default function VoiceDevPage() {
               {formatElapsed(recorder.elapsedMs)}
             </p>
           </div>
-          <p className="text-sm text-gray-500">3 minute limit</p>
+          <p className="text-sm text-gray-500">3 minutes / {AUDIO_SIZE_LABEL} maximum</p>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -182,7 +187,8 @@ export default function VoiceDevPage() {
             value={targetLanguage}
             disabled={submitting}
             onChange={(event) => {
-              clearResults();
+              setResult(null);
+              setSubmitError(null);
               setTargetLanguage(event.target.value);
             }}
             className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"
@@ -201,7 +207,8 @@ export default function VoiceDevPage() {
           disabled={!canSubmit}
           className="rounded-full bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:bg-orange-300"
         >
-          {submitting ? 'Transcribing and translating…' : 'Submit recording'}
+          {submitting ? (transcript ? 'Translating…' : 'Transcribing and translating…')
+            : transcript ? (submitError ? 'Retry translation' : 'Translate transcript') : 'Submit recording'}
         </button>
 
         {submitting ? <p role="status" className="text-sm text-gray-600">Processing may take up to two minutes. Playback remains available.</p> : null}
@@ -212,24 +219,31 @@ export default function VoiceDevPage() {
         ) : null}
       </section>
 
-      {result ? (
+      {transcript ? (
         <section className="space-y-4">
+          {!result ? <p role="status" className="text-sm text-amber-800">Transcription complete. Translation is not complete. You can translate this transcript without uploading or transcribing the audio again.</p> : null}
           <article className="space-y-2 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
             <h2 className="text-sm font-medium text-gray-500">
-              Original transcript ({result.originalLanguage || 'unknown'})
+              Original transcript ({transcript.originalLanguage || 'unknown'})
             </h2>
-            <p className="whitespace-pre-wrap leading-7">{result.transcript}</p>
+            <p className="whitespace-pre-wrap leading-7">{transcript.transcript}</p>
           </article>
-          <article className="space-y-2 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          {result ? <article className="space-y-2 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
             <h2 className="text-sm font-medium text-gray-500">
               Translation ({result.targetLanguage})
             </h2>
             <p className="whitespace-pre-wrap leading-7">{result.translation}</p>
-          </article>
+          </article> : null}
         </section>
       ) : null}
     </main>
   );
+}
+
+function isTranslationFailure(value: unknown): value is VoiceTranslationFailure {
+  return value !== null && typeof value === 'object' && 'stage' in value && value.stage === 'translation' &&
+    ['transcript', 'originalLanguage', 'targetLanguage', 'error']
+      .every((key) => key in value && typeof (value as Record<string, unknown>)[key] === 'string');
 }
 
 function isVoiceResult(value: unknown): value is VoiceProcessResult {

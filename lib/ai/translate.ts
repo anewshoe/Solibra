@@ -5,6 +5,7 @@ import { ApiError, GoogleGenAI } from '@google/genai';
 import { languageLabel, languagesMatch } from '@/lib/voice/languages';
 
 const DEFAULT_MODEL = 'gemini-3.1-flash-lite';
+export const MAX_TRANSCRIPT_CHARACTERS = 20_000;
 
 export class TranslationError extends Error {
   readonly status: number;
@@ -22,6 +23,9 @@ export async function translateTranscript(input: {
   targetLanguage: string;
   signal?: AbortSignal;
 }): Promise<string> {
+  if (!input.transcript.trim() || input.transcript.length > MAX_TRANSCRIPT_CHARACTERS) {
+    throw new TranslationError(`Use a transcript between 1 and ${MAX_TRANSCRIPT_CHARACTERS} characters.`, 422);
+  }
   if (languagesMatch(input.originalLanguage, input.targetLanguage)) {
     return input.transcript;
   }

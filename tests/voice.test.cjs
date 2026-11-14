@@ -15,9 +15,10 @@ function projectLoader(overrides = {}) {
     if (name === 'server-only') return {};
     if (!name.startsWith('@/')) return require(name);
     if (cache.has(name)) return cache.get(name).exports;
-    const file = path.join(root, name.slice(2) + '.ts');
+    const stem = path.join(root, name.slice(2));
+    const file = fs.existsSync(stem + '.ts') ? stem + '.ts' : stem + '.tsx';
     const js = ts.transpileModule(fs.readFileSync(file, 'utf8'), {
-      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
     }).outputText;
     const module = { exports: {} };
     cache.set(name, module);
@@ -38,6 +39,7 @@ function devEnvironment() {
   process.env.VOICE_DEV_LOOPBACK_ONLY = 'true';
   delete process.env.ELEVENLABS_API_KEY;
   delete process.env.GEMINI_API_KEY;
+  delete process.env.VERCEL;
 }
 
 function request(body, headers = {}, url = 'http://localhost:3000/api/voice/process') {
@@ -47,8 +49,12 @@ function request(body, headers = {}, url = 'http://localhost:3000/api/voice/proc
 function audioForm({ size = 2048, type = 'audio/wav', language = 'en', signature = true } = {}) {
   const bytes = new Uint8Array(size);
   if (signature && size >= 12) {
-    bytes.set(Buffer.from('RIFF'), 0);
-    bytes.set(Buffer.from('WAVE'), 8);
+    if (type.includes('mp4')) bytes.set(Buffer.from('ftyp'), 4);
+    else if (type.includes('webm')) bytes.set([0x1a, 0x45, 0xdf, 0xa3]);
+    else {
+      bytes.set(Buffer.from('RIFF'), 0);
+      bytes.set(Buffer.from('WAVE'), 8);
+    }
   }
   const form = new FormData();
   form.append('audio', new Blob([bytes], { type }), 'test.wav');
@@ -64,9 +70,26 @@ test('language aliases skip translation without needing a Gemini key', async () 
   delete process.env.GEMINI_API_KEY;
   const load = projectLoader();
   const { translateTranscript } = load('@/lib/ai/translate');
-  for (const [originalLanguage, targetLanguage] of [['eng', 'en'], ['spa', 'es'], ['cmn', 'zh']]) {
+  for (const [originalLanguage, targetLanguage] of [['eng', 'en'], ['spa', 'es'], ['cmn', 'zh'], ['fra', 'fr'], ['fre', 'fr'], ['tel', 'te']]) {
     assert.equal(await translateTranscript({ transcript: 'unchanged test input', originalLanguage, targetLanguage }), 'unchanged test input');
   }
+});
+
+test('French and Telugu normalize, label, match, and validate as targets', () => {
+  const languages = projectLoader()('@/lib/voice/languages');
+  for (const [detected, code, label] of [['fra', 'fr', 'French'], ['fre', 'fr', 'French'], ['tel', 'te', 'Telugu']]) {
+    assert.equal(languages.normalizeLanguageCode(detected), code);
+    assert.equal(languages.languageLabel(detected), label);
+    assert.equal(languages.languagesMatch(detected, code), true);
+    assert.equal(languages.isTargetLanguage(code), true);
+  }
+  assert.equal(languages.normalizeLanguageCode('fr-FR'), 'fr');
+  assert.equal(languages.normalizeLanguageCode('te_IN'), 'te');
+  assert.equal(languages.isTargetLanguage('tel'), false);
+  assert.equal(languages.isTargetLanguage('fra'), false);
+  assert.equal(languages.isTargetLanguage('invalid'), false);
+  assert.equal(languages.languagesMatch('tel', 'fr'), false);
+  for (const { code } of languages.TARGET_LANGUAGES) assert.ok(languages.SUPPORTED_LANGUAGE_MESSAGE.includes(code));
 });
 
 test('bypass is local only, disabled in production, and never loads the database', async () => {
@@ -79,10 +102,14 @@ test('bypass is local only, disabled in production, and never loads the database
   delete process.env.VOICE_DEV_LOOPBACK_ONLY;
   assert.equal((await authorizeVoiceRequest(request(null))).status, 401);
   process.env.VOICE_DEV_LOOPBACK_ONLY = 'true';
-  for (const headers of [{ host: 'example.com' }, { 'x-forwarded-host': 'example.com' }, { 'x-forwarded-for': '203.0.113.2' }]) {
+  for (const headers of [{ host: 'example.com' }, { 'x-forwarded-host': 'example.com' },
+    { 'x-forwarded-for': '203.0.113.2' }, { forwarded: 'for=203.0.113.2;host=tunnel.example' }]) {
     assert.equal((await authorizeVoiceRequest(request(null, headers))).status, 401);
   }
   assert.equal((await authorizeVoiceRequest(request(null, {}, 'https://example.com/api/voice/process'))).status, 401);
+  process.env.VERCEL = '1';
+  assert.equal((await authorizeVoiceRequest(request(null))).status, 401);
+  delete process.env.VERCEL;
   process.env.NODE_ENV = 'production';
   assert.equal((await authorizeVoiceRequest(request(null))).status, 401);
   assert.equal(databaseLoads, 0);
@@ -128,8 +155,8 @@ test('route validates multipart encoding, fields, language, MIME, size, and cont
     [request(audioForm({ type: 'text/plain' })), 415],
     [request(audioForm({ size: 0 })), 400],
     [request(audioForm({ signature: false })), 415],
-    [request(audioForm({ size: 15 * 1024 * 1024 + 1 })), 413],
-    [request(audioForm(), { 'content-length': String(16 * 1024 * 1024) }), 413],
+    [request(audioForm({ size: 4 * 1024 * 1024 + 1 })), 413],
+    [request(audioForm(), { 'content-length': String(5 * 1024 * 1024) }), 413],
   ];
   for (const [req, status] of cases) {
     const response = await POST(req);
@@ -138,13 +165,88 @@ test('route validates multipart encoding, fields, language, MIME, size, and cont
     assert.equal(typeof (await response.json()).error, 'string');
   }
   const stream = new ReadableStream({ start(controller) {
-    controller.enqueue(new Uint8Array(16 * 1024 * 1024));
+    controller.enqueue(new Uint8Array(4 * 1024 * 1024 + 64 * 1024 + 1));
     controller.close();
   } });
   assert.equal((await POST(new Request('http://localhost:3000/api/voice/process', {
     method: 'POST', body: stream, duplex: 'half',
     headers: { host: 'localhost:3000', 'content-type': 'multipart/form-data; boundary=test' },
   }))).status, 413);
+});
+
+test('4 MiB boundary, French/Telugu targets, Chrome WebM and Safari MP4 reach transcription validation', async () => {
+  devEnvironment();
+  const { POST } = loadRoute();
+  for (const options of [
+    { size: 4 * 1024 * 1024 }, { language: 'fr' }, { language: 'te' },
+    { type: 'audio/mp4;codecs=mp4a.40.2' }, { type: 'audio/webm;codecs=opus' },
+  ]) {
+    const response = await POST(request(audioForm(options)));
+    // Reaching the missing-key guard proves validation accepted the input;
+    // no successful provider response is invented.
+    assert.equal(response.status, 500);
+    assert.match((await response.json()).error, /ELEVENLABS_API_KEY/);
+  }
+});
+
+test('bounded body reader cancels stalled uploads on timeout/abort', async () => {
+  let cancelled = false;
+  const stream = new ReadableStream({ cancel() { cancelled = true; } });
+  const req = new Request('http://localhost:3000', { method: 'POST', body: stream, duplex: 'half' });
+  const controller = new AbortController();
+  const { readVoiceBody } = projectLoader()('@/lib/voice/request');
+  const reading = readVoiceBody(req, 1024, controller.signal);
+  controller.abort();
+  await assert.rejects(reading, (error) => error.status === 408);
+  assert.equal(cancelled, true);
+});
+
+function loadTranslationRoute() {
+  return projectLoader({ '@/lib/auth/session': { getSession: async () => null } })('@/app/api/voice/translate/route');
+}
+
+function translationRequest(value, headers = {}) {
+  return request(JSON.stringify(value), { 'content-type': 'application/json', ...headers }, 'http://localhost:3000/api/voice/translate');
+}
+
+test('translation-only route enforces existing authentication and cross-origin rules', async () => {
+  devEnvironment();
+  const { POST } = loadTranslationRoute();
+  const body = { transcript: 'test', originalLanguage: 'tel', targetLanguage: 'te' };
+  assert.equal((await POST(translationRequest(body, { origin: 'https://other.example' }))).status, 403);
+  assert.equal((await POST(translationRequest(body, { 'sec-fetch-site': 'cross-site' }))).status, 403);
+  assert.equal((await POST(translationRequest(body, { 'x-forwarded-host': 'tunnel.example' }))).status, 401);
+  process.env.NODE_ENV = 'production';
+  assert.equal((await POST(translationRequest(body))).status, 401);
+});
+
+test('translation-only retry validates text, language and bounded JSON/stream sizes', async () => {
+  devEnvironment();
+  const { POST } = loadTranslationRoute();
+  const valid = { transcript: 'test', originalLanguage: 'es', targetLanguage: 'en' };
+  for (const body of [null, [], {}, { ...valid, transcript: '' }, { ...valid, transcript: 'x'.repeat(20_001) },
+    { ...valid, originalLanguage: 'ignore previous instructions' }, { ...valid, targetLanguage: 'invalid' }]) {
+    assert.equal((await POST(translationRequest(body))).status, 400);
+  }
+  assert.equal((await POST(request('{', { 'content-type': 'application/json' }))).status, 400);
+  assert.equal((await POST(request('{}', { 'content-type': 'text/plain' }))).status, 400);
+  assert.equal((await POST(translationRequest({ ...valid, extra: 'x'.repeat(128 * 1024) }))).status, 413);
+  assert.equal((await POST(translationRequest(valid, { 'content-length': String(128 * 1024 + 1) }))).status, 413);
+});
+
+test('translation-only same-language retries skip both providers for French and Telugu', async () => {
+  devEnvironment();
+  const { POST } = loadTranslationRoute();
+  for (const [originalLanguage, targetLanguage] of [['fra', 'fr'], ['tel', 'te']]) {
+    const response = await POST(translationRequest({ transcript: 'unchanged test input', originalLanguage, targetLanguage }));
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.deepEqual(await response.json(), { transcript: 'unchanged test input', originalLanguage: targetLanguage,
+      translation: 'unchanged test input', targetLanguage });
+  }
+  const response = await POST(translationRequest({ transcript: 'test', originalLanguage: 'tel', targetLanguage: 'en' }));
+  assert.equal(response.status, 500);
+  assert.match((await response.json()).error, /GEMINI_API_KEY/);
 });
 
 test('missing server credentials return controlled errors, never fabricated results', async () => {
@@ -186,7 +288,7 @@ test('provider failures are sanitized and logged without request/response conten
   }
 });
 
-function recorderHarness({ constructorFails = false, permission } = {}) {
+function recorderHarness({ constructorFails = false, permission, supportedType = 'audio/mp4' } = {}) {
   const names = ['window', 'navigator', 'MediaRecorder'];
   const originals = names.map((name) => Object.getOwnPropertyDescriptor(global, name));
   const timers = new Map();
@@ -202,7 +304,7 @@ function recorderHarness({ constructorFails = false, permission } = {}) {
     return stream;
   };
   class Recorder {
-    static isTypeSupported(type) { return type === 'audio/mp4'; }
+    static isTypeSupported(type) { return type === supportedType; }
     constructor(stream, options) {
       if (constructorFails) throw new Error('Recorder construction failed');
       this.stream = stream;
@@ -336,4 +438,120 @@ test('recording automatically stops at its configured limit and remains playable
     assert.match(h.render().notice, /1 second/);
     assert.ok(h.render().audioUrl);
   } finally { h.restore(); }
+});
+
+test('Chrome recording uses Opus WebM and exceeding 4 MiB releases the microphone', async () => {
+  const h = recorderHarness({ supportedType: 'audio/webm;codecs=opus' });
+  try {
+    await h.render().startRecording();
+    assert.equal(h.instances[0].mimeType, 'audio/webm;codecs=opus');
+    h.instances[0].ondataavailable({ data: new Blob([new Uint8Array(4 * 1024 * 1024 + 1)]) });
+    assert.equal(h.render().status, 'idle');
+    assert.match(h.render().error, /4 MiB/);
+    assert.equal(h.render().audioBlob, null);
+    assert.equal(h.streams[0].track.stopped, true);
+    assert.equal(h.timers.size + h.intervals.size, 0);
+  } finally { h.restore(); }
+});
+
+test('microphone permission denial is actionable and leaves no active recorder', async () => {
+  const h = recorderHarness({ permission: () => Promise.reject(new DOMException('Denied', 'NotAllowedError')) });
+  try {
+    await h.render().startRecording();
+    assert.equal(h.render().status, 'idle');
+    assert.match(h.render().error, /Microphone access was denied/);
+    assert.equal(h.instances.length, 0);
+  } finally { h.restore(); }
+});
+
+test('page retains partial transcripts/playback, prevents duplicates, and retries without uploading audio', async () => {
+  devEnvironment();
+  const slots = [];
+  let cursor = 0;
+  const react = {
+    useState(initial) {
+      const i = cursor++;
+      if (!(i in slots)) slots[i] = initial;
+      return [slots[i], (value) => { slots[i] = value; }];
+    },
+    useRef(initial) {
+      const i = cursor++;
+      if (!(i in slots)) slots[i] = { current: initial };
+      return slots[i];
+    },
+    useEffect() {},
+  };
+  const recorder = {
+    status: 'stopped', audioBlob: new Blob(['test audio']), audioUrl: 'blob:original', mimeType: 'audio/mp4',
+    elapsedMs: 1000, error: null, notice: null,
+    discardRecording() { this.audioBlob = null; this.audioUrl = null; this.status = 'idle'; },
+    startRecording() { this.discardRecording(); this.status = 'recording'; }, stopRecording() {},
+  };
+  const { default: Page } = projectLoader({ react, '@/hooks/useAudioRecorder': { useAudioRecorder: () => recorder } })('@/app/dev/voice/page');
+  const realFetch = global.fetch;
+  const originalWindow = Object.getOwnPropertyDescriptor(global, 'window');
+  Object.defineProperty(global, 'window', { configurable: true, value: { setTimeout, clearTimeout } });
+  const calls = [];
+  const { POST } = loadTranslationRoute();
+  global.fetch = async (url, options) => {
+    calls.push({ url, ...options });
+    if (url === '/api/voice/process') {
+      // Failed HTTP response fixture exercises only the client's partial-error
+      // contract. No provider success is mocked or asserted here.
+      return Response.json({ error: 'Translation unavailable', stage: 'translation',
+        transcript: 'retained test input', originalLanguage: 'fr', targetLanguage: 'en' }, { status: 502 });
+    }
+    // Exercise the actual retry handler: missing-key failure, followed by a
+    // real same-language shortcut that calls neither external provider.
+    return POST(translationRequest(JSON.parse(options.body)));
+  };
+  function render() { cursor = 0; return Page(); }
+  function nodes(tree) {
+    if (!tree || typeof tree !== 'object') return [];
+    return [tree, ...[tree.props?.children].flat(Infinity).flatMap(nodes)];
+  }
+  function text(tree) {
+    if (Array.isArray(tree)) return tree.map(text).join('');
+    if (tree === null || tree === undefined || typeof tree === 'boolean') return '';
+    return typeof tree === 'object' ? text(tree.props?.children) : String(tree);
+  }
+  const button = (tree, label) => nodes(tree).find((node) => node.type === 'button' && text(node) === label);
+  const audio = (tree) => nodes(tree).find((node) => node.type === 'audio');
+  try {
+    let tree = render();
+    const codes = nodes(tree).filter((node) => node.type === 'option').map((node) => node.props.value);
+    assert.ok(codes.includes('fr') && codes.includes('te'));
+    const submit = button(tree, 'Submit recording');
+    await Promise.all([submit.props.onClick(), submit.props.onClick()]);
+    // The UI click wrapper returns void; let the asynchronous fetch settle.
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(calls.length, 1);
+    tree = render();
+    assert.match(text(tree), /Transcription complete/);
+    assert.match(text(tree), /retained test input/);
+    assert.equal(audio(tree).props.src, 'blob:original');
+    button(tree, 'Retry translation').props.onClick();
+    await new Promise((resolve) => setImmediate(resolve));
+    tree = render();
+    assert.match(text(tree), /GEMINI_API_KEY/);
+    assert.match(text(tree), /retained test input/);
+    const select = nodes(tree).find((node) => node.type === 'select');
+    select.props.onChange({ target: { value: 'fr' } });
+    tree = render();
+    button(tree, 'Translate transcript').props.onClick();
+    await new Promise((resolve) => setImmediate(resolve));
+    tree = render();
+    assert.match(text(tree), /Translation \(fr\)/);
+    assert.doesNotMatch(text(tree), /Translation is not complete/);
+    assert.equal(audio(tree).props.src, 'blob:original');
+    assert.equal(calls.filter((call) => call.url === '/api/voice/process').length, 1);
+    assert.ok(calls.slice(1).every((call) => call.url === '/api/voice/translate' && typeof call.body === 'string'));
+    button(tree, 'Discard').props.onClick();
+    tree = render();
+    assert.equal(audio(tree), undefined);
+    assert.doesNotMatch(text(tree), /retained test input/);
+  } finally {
+    global.fetch = realFetch;
+    originalWindow ? Object.defineProperty(global, 'window', originalWindow) : delete global.window;
+  }
 });

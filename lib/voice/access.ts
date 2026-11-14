@@ -4,7 +4,7 @@ import { getSession } from '@/lib/auth/session';
 
 export type VoiceAccess =
   | { ok: true }
-  | { ok: false; status: 401 | 503; message: string };
+  | { ok: false; status: 401 | 403 | 503; message: string };
 
 /**
  * Paid transcription must not be an open proxy.
@@ -24,8 +24,10 @@ function isLoopbackHost(host: string): boolean {
 function devAuthBypassEnabled(request: Request): boolean {
   return (
     process.env.NODE_ENV === 'development' &&
+    !process.env.VERCEL &&
     process.env.VOICE_DEV_AUTH_BYPASS === 'true' &&
     process.env.VOICE_DEV_LOOPBACK_ONLY === 'true' &&
+    !request.headers.has('forwarded') &&
     isLoopbackHost(new URL(request.url).host) &&
     isLoopbackHost(request.headers.get('host') ?? '') &&
     (request.headers.get('x-forwarded-host') ?? '').split(',')
@@ -36,6 +38,18 @@ function devAuthBypassEnabled(request: Request): boolean {
 }
 
 export async function authorizeVoiceRequest(request: Request): Promise<VoiceAccess> {
+  // Both paid voice routes use this guard, including protection against
+  // cross-origin multipart posts that do not require a CORS preflight.
+  const origin = request.headers.get('origin');
+  try {
+    if (request.headers.get('sec-fetch-site') === 'cross-site' ||
+        (origin && new URL(origin).host !== (request.headers.get('host') ?? new URL(request.url).host))) {
+      return { ok: false, status: 403, message: 'Submit the recording from this site.' };
+    }
+  } catch {
+    return { ok: false, status: 403, message: 'Invalid request origin.' };
+  }
+
   if (devAuthBypassEnabled(request)) {
     return { ok: true };
   }

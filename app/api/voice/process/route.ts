@@ -1,9 +1,10 @@
 import { TranscriptionError, transcribeAudio } from '@/lib/ai/transcribe';
 import { TranslationError, translateTranscript } from '@/lib/ai/translate';
 import { authorizeVoiceRequest } from '@/lib/voice/access';
-import { ACCEPTED_AUDIO_TYPES, baseContentType, filenameForAudio, MAX_AUDIO_BYTES } from '@/lib/voice/audio';
-import { isTargetLanguage } from '@/lib/voice/languages';
-import type { VoiceProcessError, VoiceProcessResult } from '@/lib/voice/types';
+import { ACCEPTED_AUDIO_TYPES, AUDIO_SIZE_LABEL, baseContentType, filenameForAudio, MAX_AUDIO_BYTES } from '@/lib/voice/audio';
+import { isTargetLanguage, SUPPORTED_LANGUAGE_MESSAGE } from '@/lib/voice/languages';
+import { readVoiceBody, VoiceBodyError } from '@/lib/voice/request';
+import type { VoiceProcessError, VoiceProcessResult, VoiceTranscript, VoiceTranslationFailure } from '@/lib/voice/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -13,17 +14,7 @@ const MAX_MULTIPART_BYTES = MAX_AUDIO_BYTES + 64 * 1024;
 const MIN_AUDIO_BYTES = 1000;
 
 export async function POST(request: Request) {
-  // Multipart forms can be posted cross-origin without a CORS preflight.
-  const origin = request.headers.get('origin');
-  try {
-    if (request.headers.get('sec-fetch-site') === 'cross-site' ||
-        (origin && new URL(origin).host !== (request.headers.get('host') ?? new URL(request.url).host))) {
-      return jsonError('Submit the recording from this site.', 403);
-    }
-  } catch {
-    return jsonError('Invalid request origin.', 403);
-  }
-
+  const signal = AbortSignal.any([request.signal, AbortSignal.timeout(110_000)]);
   const access = await authorizeVoiceRequest(request);
   if (!access.ok) {
     return jsonError(access.message, access.status);
@@ -36,31 +27,15 @@ export async function POST(request: Request) {
     }
     // Bound the body before parsing it, including chunked requests without a
     // Content-Length. Checking File.size alone allows unbounded memory usage.
-    if (Number(request.headers.get('content-length')) > MAX_MULTIPART_BYTES) {
-      return jsonError('The recording is larger than 15 MB.', 413);
-    }
-    const reader = request.body?.getReader();
-    if (!reader) return jsonError('Attach a recording.', 400);
-    const chunks: Uint8Array[] = [];
-    let total = 0;
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        total += value.byteLength;
-        if (total > MAX_MULTIPART_BYTES) {
-          await reader.cancel();
-          return jsonError('The recording is larger than 15 MB.', 413);
-        }
-        chunks.push(value);
-      }
-    } finally {
-      reader.releaseLock();
-    }
-    formData = await new Response(Buffer.concat(chunks), {
+    const data = await readVoiceBody(request, MAX_MULTIPART_BYTES,
+      AbortSignal.any([signal, AbortSignal.timeout(15_000)]));
+    formData = await new Response(data, {
       headers: { 'content-type': request.headers.get('content-type')! },
     }).formData();
-  } catch {
+  } catch (error) {
+    if (error instanceof VoiceBodyError) {
+      return jsonError(error.status === 413 ? `The recording is larger than ${AUDIO_SIZE_LABEL}.` : error.message, error.status);
+    }
     return jsonError('Send the recording as multipart form data.', 400);
   }
 
@@ -70,10 +45,7 @@ export async function POST(request: Request) {
 
   const targetLanguage = formData.get('targetLanguage');
   if (typeof targetLanguage !== 'string' || !isTargetLanguage(targetLanguage)) {
-    return jsonError(
-      'Choose a supported targetLanguage: en, es, zh, yue, vi, ko, ja, hi, tl, fr, pt, or ar.',
-      400
-    );
+    return jsonError(SUPPORTED_LANGUAGE_MESSAGE, 400);
   }
 
   const audio = formData.get('audio');
@@ -94,10 +66,10 @@ export async function POST(request: Request) {
   }
 
   if (audio.size > MAX_AUDIO_BYTES) {
-    return jsonError('The recording is larger than 15 MB.', 413);
+    return jsonError(`The recording is larger than ${AUDIO_SIZE_LABEL}.`, 413);
   }
 
-  const signal = AbortSignal.any([request.signal, AbortSignal.timeout(110_000)]);
+  let completedTranscript: VoiceTranscript | null = null;
   try {
     const data = new Uint8Array(await audio.arrayBuffer());
     if (!matchesContainer(data, contentType)) {
@@ -105,6 +77,7 @@ export async function POST(request: Request) {
     }
     const filename = filenameForAudio(contentType);
     const transcript = await transcribeAudio({ data, filename, contentType, signal });
+    completedTranscript = transcript;
     const translation = await translateTranscript({
       transcript: transcript.transcript,
       originalLanguage: transcript.originalLanguage,
@@ -120,14 +93,19 @@ export async function POST(request: Request) {
     };
     return Response.json(body, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
-    if (signal.aborted) {
-      return jsonError('Processing timed out or was cancelled. Try a shorter recording.', 504);
+    const knownError = error instanceof TranscriptionError || error instanceof TranslationError;
+    const status = signal.aborted ? 504 : knownError ? error.status : 500;
+    const message = signal.aborted
+      ? 'Processing timed out or was cancelled. Try again.'
+      : knownError ? error.message : 'Could not process the recording. Try again.';
+    if (!signal.aborted && !knownError) console.error('Voice processing failed');
+    if (completedTranscript) {
+      const partial: VoiceTranslationFailure = {
+        ...completedTranscript, stage: 'translation', targetLanguage, error: message,
+      };
+      return Response.json(partial, { status, headers: { 'Cache-Control': 'no-store' } });
     }
-    if (error instanceof TranscriptionError || error instanceof TranslationError) {
-      return jsonError(error.message, error.status);
-    }
-    console.error('Voice processing failed');
-    return jsonError('Could not process the recording. Try again.', 500);
+    return jsonError(message, status);
   }
 }
 

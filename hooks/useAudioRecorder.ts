@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ACCEPTED_AUDIO_TYPES, baseContentType, MAX_AUDIO_BYTES, MAX_RECORDING_DURATION_MS } from '@/lib/voice/audio';
+import { ACCEPTED_AUDIO_TYPES, AUDIO_SIZE_LABEL, baseContentType, MAX_AUDIO_BYTES, MAX_RECORDING_DURATION_MS } from '@/lib/voice/audio';
 const MIME_CANDIDATES = [
   'audio/webm;codecs=opus',
   'audio/webm',
@@ -188,7 +188,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           releaseMicrophone();
           chunksRef.current = [];
           setStatus('idle');
-          setError('The recording exceeded 15 MB. Record a shorter memory.');
+          setError(`The recording exceeded ${AUDIO_SIZE_LABEL}. Record a shorter memory.`);
           return;
         }
         if (event.data.size > 0) chunksRef.current.push(event.data);

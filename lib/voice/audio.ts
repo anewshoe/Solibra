@@ -1,5 +1,7 @@
 /** Shared browser/server limits; no provider code or secrets in this module. */
-export const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
+// 4 MiB plus 64 KiB multipart overhead stays below Vercel's 4.5 MB limit.
+export const MAX_AUDIO_BYTES = 4 * 1024 * 1024;
+export const AUDIO_SIZE_LABEL = '4 MiB';
 export const MAX_RECORDING_DURATION_MS = 3 * 60 * 1000;
 
 export const ACCEPTED_AUDIO_TYPES = new Set([
