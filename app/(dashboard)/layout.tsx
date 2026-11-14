@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { use, useState, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { CircleIcon, Home, LogOut } from 'lucide-react';
 import {
@@ -33,10 +33,10 @@ function UserMenu() {
     return (
       <>
         <Link
-          href="/pricing"
+          href="/sign-in"
           className="text-sm font-medium text-gray-700 hover:text-gray-900"
         >
-          Pricing
+          Sign In
         </Link>
         <Button asChild className="rounded-full">
           <Link href="/sign-up">Sign Up</Link>
