@@ -64,21 +64,23 @@ Run the included database setup script:
 pnpm db:setup
 ```
 
-This creates a `.env` file containing the environment variables required by the starter application.
+This creates a `.env` file if one does not exist. Existing credentials are preserved.
 
 Configure the required environment variables, including your PostgreSQL connection string and authentication secret.
 
-**Note:** The original SaaS starter also includes Stripe environment variables. These may be required by existing starter code until unused payment functionality is removed.
+Solibra is free. Only `POSTGRES_URL` (including your Neon connection string), `BASE_URL`, and `AUTH_SECRET` are needed.
 
 ### Database Setup
 
-Run database migrations:
+Review generated SQL before applying migrations. For an existing database, keep the applied migration history and use the incremental migration; do not reset or recreate the database. The pending migration removes only obsolete payment columns and their unique constraints from `teams`. It preserves users, teams, memberships, invitations, and activity logs.
+
+After approving the SQL, run database migrations:
 
 ```bash
 pnpm db:migrate
 ```
 
-Optionally, seed the database with development data:
+For a fresh development database only, optionally seed sample data (do not seed your existing Neon database):
 
 ```bash
 pnpm db:seed
