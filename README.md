@@ -1,119 +1,123 @@
-# Next.js SaaS Starter
 
-This is a starter template for building a SaaS application using **Next.js** with support for authentication, Stripe integration for payments, and a dashboard for logged-in users.
+# Solibra
 
-**Demo: [https://next-saas-start.vercel.app/](https://next-saas-start.vercel.app/)**
+**Preserving memories, connecting generations.**
+
+Solibra is a collaborative digital library designed to help families, friends, and communities preserve and share the stories that define them. From cherished photographs and traditional recipes to personal stories and cultural traditions, Solibra provides a centralized space to document memories and pass them on to future generations.
+
+Built for **SanD Hacks 2026**, Solibra aims to make cultural preservation more accessible, personal, and collaborative.
+
+Demo: 
 
 ## Features
 
-- Marketing landing page (`/`) with animated Terminal element
-- Pricing page (`/pricing`) which connects to Stripe Checkout
-- Dashboard pages with CRUD operations on users/teams
-- Basic RBAC with Owner and Member roles
-- Subscription management with Stripe Customer Portal
-- Email/password authentication with JWTs stored to cookies
-- Global middleware to protect logged-in routes
-- Local middleware to protect Server Actions or validate Zod schemas
-- Activity logging system for any user events
+Solibra is being developed around the following features:
+
+- **Digital Memory Library:** Store and organize photographs, recipes, stories, and traditions in one place.
+- **Collaborative Collections:** Allow family members and friends to contribute to shared libraries.
+- **Cultural Preservation:** Document meaningful traditions, customs, and personal experiences for future generations.
+- **User Authentication:** Secure account creation and login to manage personal and shared content.
+- **Personalized Dashboard:** Access and manage saved memories and collections through an intuitive interface.
+- **Memory Organization:** Categorize content to make memories easier to browse and rediscover.
 
 ## Tech Stack
 
-- **Framework**: [Next.js](https://nextjs.org/)
-- **Database**: [Postgres](https://www.postgresql.org/)
-- **ORM**: [Drizzle](https://orm.drizzle.team/)
-- **Payments**: [Stripe](https://stripe.com/)
-- **UI Library**: [shadcn/ui](https://ui.shadcn.com/)
+- **Framework:** [Next.js](https://nextjs.org/)
+- **Language:** TypeScript
+- **Frontend:** React, Tailwind CSS
+- **Database:** [PostgreSQL](https://www.postgresql.org/)
+- **ORM:** [Drizzle](https://orm.drizzle.team/)
+- **UI Components:** [shadcn/ui](https://ui.shadcn.com/)
+- **Authentication:** JWT-based authentication
 
 ## Getting Started
 
+### Prerequisites
+
+Make sure you have the following installed:
+
+- Node.js
+- pnpm
+- Git
+- PostgreSQL database access
+
+### Installation
+
+Clone the repository:
+
 ```bash
-git clone https://github.com/nextjs/saas-starter
-cd saas-starter
+git clone https://github.com/anewshoe/Solibra.git
+cd Solibra
+```
+
+Install dependencies:
+
+```bash
 pnpm install
 ```
 
-## Running Locally
+### Environment Setup
 
-[Install](https://docs.stripe.com/stripe-cli) and log in to your Stripe account:
-
-```bash
-stripe login
-```
-
-Use the included setup script to create your `.env` file:
+Run the included database setup script:
 
 ```bash
 pnpm db:setup
 ```
 
-Run the database migrations and seed the database with a default user and team:
+This creates a `.env` file containing the environment variables required by the starter application.
+
+Configure the required environment variables, including your PostgreSQL connection string and authentication secret.
+
+**Note:** The original SaaS starter also includes Stripe environment variables. These may be required by existing starter code until unused payment functionality is removed.
+
+### Database Setup
+
+Run database migrations:
 
 ```bash
 pnpm db:migrate
+```
+
+Optionally, seed the database with development data:
+
+```bash
 pnpm db:seed
 ```
 
-This will create the following user and team:
+### Running Locally
 
-- User: `test@test.com`
-- Password: `admin123`
-
-You can also create new users through the `/sign-up` route.
-
-Finally, run the Next.js development server:
+Start the development server:
 
 ```bash
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser to see the app in action.
+Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
 
-You can listen for Stripe webhooks locally through their CLI to handle subscription change events:
+## Development
 
-```bash
-stripe listen --forward-to localhost:3000/api/stripe/webhook
-```
+Solibra is an ongoing project developed as part of SanD Hacks 2026.
 
-## Testing Payments
+To contribute changes:
 
-To test Stripe payments, use the following test card details:
+1. Create a new branch for your feature.
+2. Implement and test your changes locally.
+3. Commit your changes with a descriptive message.
+4. Push your branch to GitHub.
+5. Open a pull request for review.
 
-- Card Number: `4242 4242 4242 4242`
-- Expiration: Any future date
-- CVC: Any 3-digit number
+## Our Mission
 
-## Going to Production
+Memories are more than photographs or written records. They represent the people, cultures, and experiences that shape our identities.
 
-When you're ready to deploy your SaaS application to production, follow these steps:
+Unfortunately, many personal stories, family recipes, and cultural traditions are lost over time when they are not documented or shared.
 
-### Set up a production Stripe webhook
+**Solibra aims to bridge this gap by making memory preservation a shared experience.** By giving communities a space to collaboratively document their histories, we hope to help meaningful stories survive across generations.
 
-1. Go to the Stripe Dashboard and create a new webhook for your production environment.
-2. Set the endpoint URL to your production API route (e.g., `https://yourdomain.com/api/stripe/webhook`).
-3. Select the events you want to listen for (e.g., `checkout.session.completed`, `customer.subscription.updated`).
+## Hackathon
 
-### Deploy to Vercel
+Developed for **SanD Hacks 2026**.
 
-1. Push your code to a GitHub repository.
-2. Connect your repository to [Vercel](https://vercel.com/) and deploy it.
-3. Follow the Vercel deployment process, which will guide you through setting up your project.
+## Repository
 
-### Add environment variables
-
-In your Vercel project settings (or during deployment), add all the necessary environment variables. Make sure to update the values for the production environment, including:
-
-1. `BASE_URL`: Set this to your production domain.
-2. `STRIPE_SECRET_KEY`: Use your Stripe secret key for the production environment.
-3. `STRIPE_WEBHOOK_SECRET`: Use the webhook secret from the production webhook you created in step 1.
-4. `POSTGRES_URL`: Set this to your production database URL.
-5. `AUTH_SECRET`: Set this to a random string. `openssl rand -base64 32` will generate one.
-
-## Other Templates
-
-While this template is intentionally minimal and to be used as a learning resource, there are other paid versions in the community which are more full-featured:
-
-- https://achromatic.dev
-- https://shipfa.st
-- https://makerkit.dev
-- https://zerotoshipped.com
-- https://turbostarter.dev
+[github.com/anewshoe/Solibra](https://github.com/anewshoe/Solibra)
