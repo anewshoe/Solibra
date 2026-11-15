@@ -50,7 +50,7 @@ test('typed adapter uses existing authenticated contracts and requires 201 plus 
 });
 
 global.window = { matchMedia: () => ({ matches: true }) };
-function harness(api) {
+function harness(api, options = {}) {
   const slots = []; const cleanups = []; let cursor = 0;
   const react = {
     useState(initial) { const i = cursor++; if (!(i in slots)) slots[i] = initial; return [slots[i], value => { slots[i] = typeof value === 'function' ? value(slots[i]) : value; }]; },
@@ -58,9 +58,9 @@ function harness(api) {
     useEffect(effect) { const i = cursor++; if (!(i in slots)) { slots[i] = true; cleanups.push(effect()); } }
   };
   const realApi = loader()('@/lib/frontend/nooks-client');
-  const Component = loader({ react, '@/lib/frontend/nooks-client': { ...realApi, ...api }, '@/components/solibra/shell': { Mascot: () => null } })('@/components/solibra/create-nook').CreateNookWorkflow;
+  const Component = loader({ ...(options.cache ? { '@/lib/frontend/nook-cache': options.cache } : {}), react, '@/lib/frontend/nooks-client': { ...realApi, ...api }, '@/components/solibra/shell': { Mascot: () => null } })('@/components/solibra/create-nook').CreateNookWorkflow;
   function nodes(element) { return !element || typeof element !== 'object' ? [] : [element, ...[element.props?.children].flat(Infinity).flatMap(nodes)]; }
-  const render = () => { cursor = 0; return nodes(Component()); };
+  const render = () => { cursor = 0; return nodes(Component(options.props)); };
   return {
     input(id, value) { render().find(el => el.props?.id === id).props.onChange({ target: { value } }); },
     submit() { render().find(el => el.type === 'form').props.onSubmit({ preventDefault() {} }); },
@@ -171,4 +171,12 @@ test('local hostname rejection offers the canonical address without retrying or 
   };
   try { await assert.rejects(api.createNook({ name: 'Test' }), error => error.status === 403 && /http:\/\/localhost:3000\/nooks\/new/.test(error.message)); assert.equal(calls, 1); }
   finally { global.fetch = realFetch; global.window.location = oldLocation; }
+});
+
+test('confirmed creation refreshes the authenticated Library and provides a real numeric Nook entry', async () => {
+ let refreshed=0;let created=0;
+ const h=harness({createNook:async()=>{created++;return{nook};}},{props:{viewerId:5},cache:{refreshNookLists:async viewerId=>{assert.equal(viewerId,5);refreshed++;}}});
+ h.input('nook-name','Sunday table');h.submit();h.click('Create Nook');await flush();h.click('Skip invitations');
+ assert.equal(refreshed,1);assert.equal(created,1);assert.ok(h.tree().some(el=>el.props?.href==='/circles/42'));
+ h.click('Back to invitations');h.click('Continue to Ready');assert.equal(created,1);assert.equal(refreshed,1);
 });

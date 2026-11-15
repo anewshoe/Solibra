@@ -58,23 +58,24 @@ function AccountMenu() {
 
 export function SolibraShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { data: account } = useSWR<User | null>('/api/user', (url: string) => fetch(url).then(res => res.json()));
   const inNook = pathname.startsWith('/circles/');
-  const inMessages = pathname.startsWith('/messages/');
-  const circleId = inNook || inMessages ? pathname.split('/')[2] : 'rivera-family';
+  const inMessages = pathname === '/messages' || pathname.startsWith('/messages/');
+  const inDemo = pathname.startsWith('/demo');
   const [notice, setNotice] = useState<{ title: string; description: string } | null>(null);
   const showNotice = (title: string, description: string) => setNotice({ title, description });
-  const notifications = () => showNotice('Notifications', 'This preview uses sample Nooks and memories. Live notifications will appear here once connected.');
+  const notifications = () => router.push(account ? '/#invitations' : '/sign-in');
 
   return (
     <NoticeContext.Provider value={showNotice}>
       <a href="#main-content" className="sol-skip">Skip to content</a>
-      <header className={`sol-header ${inNook ? 'sol-header-nook' : ''} ${inMessages ? 'sol-header-conversation' : ''}`}>
+      <header className={`sol-header ${inNook ? 'sol-header-nook' : ''} ${pathname.startsWith('/messages/') ? 'sol-header-conversation' : ''}`}>
         <div className="sol-header-inner">
           <Link href="/" className="sol-logo" aria-label="Solibra Library"><BrandLogo /></Link>
           <nav aria-label="Main navigation" className="sol-desktop-nav">
-            <Link href="/" aria-current={(pathname === '/' || pathname === '/nooks/new' || inNook) ? 'page' : undefined}><DesignIcon name="library" />Library</Link>
-            <Link href={`/messages/${circleId}`} aria-current={inMessages ? 'page' : undefined}><DesignIcon name="messages" />Messages</Link>
+            <Link href="/" aria-current={(pathname === '/' || pathname === '/nooks/new' || inNook || inDemo) ? 'page' : undefined}><DesignIcon name="library" />Library</Link>
+            <Link href="/messages" aria-current={inMessages ? 'page' : undefined}><DesignIcon name="messages" />Messages</Link>
           </nav>
           <div className="sol-header-actions">
             <Link href={inNook ? `${pathname.split('/memories/')[0]}#memory-search` : '/?search=1#library-search'} className="sol-icon-button sol-header-search" aria-label={inNook ? 'Search this Nook' : 'Search Nooks'}><DesignIcon name="search" /></Link>
@@ -86,8 +87,8 @@ export function SolibraShell({ children }: { children: React.ReactNode }) {
       {children}
       <footer className="sol-footer"><p>A private place for the people who matter.</p><p>Your memories stay yours. Always.</p></footer>
       <nav aria-label="Mobile navigation" className="sol-bottom-nav">
-        <Link href="/" aria-current={(pathname === '/' || pathname === '/nooks/new' || inNook) ? 'page' : undefined}><DesignIcon name="library" />Library</Link>
-        <Link href={`/messages/${circleId}`} aria-current={inMessages ? 'page' : undefined}><DesignIcon name="messages" />Messages</Link>
+        <Link href="/" aria-current={(pathname === '/' || pathname === '/nooks/new' || inNook || inDemo) ? 'page' : undefined}><DesignIcon name="library" />Library</Link>
+        <Link href="/messages" aria-current={inMessages ? 'page' : undefined}><DesignIcon name="messages" />Messages</Link>
         <Link href={account ? "/profile" : "/sign-in"} aria-current={pathname === '/profile' || pathname.startsWith('/profile/') ? 'page' : undefined}><DesignIcon name="user" />You</Link>
       </nav>
       <Dialog.Root open={!!notice} onOpenChange={(open) => { if (!open) setNotice(null); }}>

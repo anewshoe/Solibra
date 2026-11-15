@@ -135,7 +135,7 @@ test('private member cards show scoped roles and context without email addresses
   assert.ok(html.includes('Elena Rivera')); assert.ok(html.includes('Member')); assert.ok(html.includes('Sunday table')); assert.ok(html.includes('January 1, 2026')); assert.ok(!html.includes('PRIVATE_EMAIL')); assert.ok(!html.includes('/profile/6'));
 });
 
-test('profile renders real scoped membership roles, missing-name setup and no fixture interior links', () => {
+test('profile renders real scoped membership roles, setup and numeric Nook entry links', () => {
   const Profile = loader({
     'next/navigation': { useRouter: () => ({ replace() {},refresh() {} }) },
     '@/app/(login)/actions': { signOut() {} },
@@ -144,7 +144,7 @@ test('profile renders real scoped membership roles, missing-name setup and no fi
   const html = renderToStaticMarkup(React.createElement(Profile,{viewerId:5}));
   assert.ok(html.includes('Complete Profile')); assert.ok(html.includes('Sunday table')); assert.ok(html.includes('Member'));
   assert.ok(html.includes('Edit Profile')); assert.ok(!html.includes('/dashboard/general')); assert.ok(!html.includes('/dashboard/security'));
-  assert.ok(!html.includes('/circles/42')); assert.ok(!html.includes('PRIVATE_HASH'));
+  assert.ok(html.includes('/circles/42')); assert.ok(!html.includes('PRIVATE_HASH'));
 });
 
 test('password update and deletion failures never reflect submitted secrets', async () => {

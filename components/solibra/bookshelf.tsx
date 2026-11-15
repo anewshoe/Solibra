@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import type { MemoryCategory, SampleCircle } from '@/lib/fixtures/library';
 
-export function Bookshelf({ circle, onFilter }: { circle: SampleCircle; onFilter: (category: MemoryCategory) => void }) {
+export function Bookshelf(props: { circle: SampleCircle; onFilter: (category: MemoryCategory) => void } | { nookName:string; children:React.ReactNode }) {
+  if ('nookName' in props) return <section className="sol-bookshelf-section" aria-label="Nook bookshelf"><h2 className="mobile-shelf-title">On your shelf</h2><div className="sol-bookshelf real-bookshelf">{props.children}<div className="shelf-plank"/><p className="shelf-label">{props.nookName} · A home for your shared stories</p></div></section>;
+  const { circle, onFilter } = props;
   return (
     <section className="sol-bookshelf-section" aria-label="Nook bookshelf">
       <h2 className="mobile-shelf-title">On your {circle.collection === 'family' ? 'family' : circle.collection} shelf</h2>

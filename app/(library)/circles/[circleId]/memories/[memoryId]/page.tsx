@@ -10,5 +10,5 @@ export default async function MemoryRoute({ params, searchParams }: { params: Pr
   if (!circle || !artifact) notFound();
   if (canonicalArtifactId(memoryId) !== memoryId) redirect(memoryHref(circleId, memoryId));
   const { contribution } = await searchParams;
-  return <MemoryDetails key={`${circleId}:${artifact.artifactId}`} circle={circle} artifact={artifact} initialContributionId={contribution} />;
+  return <><p className="demo-label" role="note">Demo memory · Fictional people and sample content.</p><MemoryDetails key={`${circleId}:${artifact.artifactId}`} circle={circle} artifact={artifact} initialContributionId={contribution} /></>;
 }

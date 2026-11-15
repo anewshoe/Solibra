@@ -1,72 +1,34 @@
 'use client';
-
 import Link from 'next/link';
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowRight, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { sampleCircles } from '@/lib/fixtures/library';
-import { RecentAdditions } from './recent-additions';
-import { sampleRecentAdditions } from '@/lib/fixtures/recent-additions';
+import type { NookListResponse } from '@/lib/nooks/types';
+import type { AccountProfile } from '@/lib/frontend/account';
+import { filterNooks } from '@/lib/frontend/real-nooks';
 import { NookWindow } from './nook-window';
-import { DesignIcon, useNotice } from './shell';
+import { DesignIcon } from './shell';
+import { useNookData } from './use-nook-data';
+import { NookRequestState } from './nook-request-state';
+import { InvitationInbox } from './invitation-inbox';
 
-const tabs = [{ id: 'my', label: 'All Nooks', count: sampleCircles.length }, { id: 'shared', label: 'Shared with me' }, { id: 'recent', label: 'Recent' }] as const;
-
-function LibraryCollection() {
-  const params = useSearchParams();
-  const router = useRouter();
-  const selected = tabs.find((tab) => tab.id === params.get('tab'))?.id || 'my';
-  const [query, setQuery] = useState('');
-  const searchOpen = params.get('search') === '1';
-  const circles = sampleCircles
-    .filter((circle) => selected !== 'shared' || circle.sharedWithMe)
-    .filter((circle) => circle.title.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
-    .sort((a, b) => selected === 'recent' ? b.lastVisited.localeCompare(a.lastVisited) : 0);
-
-  function selectTab(id: string) {
-    const next = new URLSearchParams(params.toString());
-    next.set('tab', id);
-    router.replace(`/?${next.toString()}#nooks`, { scroll: false });
-  }
-
-  return (
-    <section id="nooks" className="library-wall" aria-label="Your private library wall">
-      <div className="library-tabs" role="tablist" aria-label="Nook collections">
-        {tabs.map((tab, index) => <button key={tab.id} role="tab" id={`tab-${tab.id}`} aria-selected={selected === tab.id} aria-controls="nook-collection" tabIndex={selected === tab.id ? 0 : -1} onClick={() => selectTab(tab.id)} onKeyDown={(event) => {
-          const offset = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
-          const target = event.key === 'Home' ? tabs[0] : event.key === 'End' ? tabs[tabs.length - 1] : offset ? tabs[(index + offset + tabs.length) % tabs.length] : undefined;
-          if (target) { event.preventDefault(); selectTab(target.id); document.getElementById(`tab-${target.id}`)?.focus(); }
-        }}>{tab.label}{'count' in tab && <span>{tab.count}</span>}</button>)}
-      </div>
-      {searchOpen && <label className="sol-search library-search" id="library-search"><DesignIcon name="search" /><span className="sr-only">Search Nooks</span><input autoFocus type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search your Nooks…" /></label>}
-      <div className="nook-collection" id="nook-collection" role="tabpanel" aria-labelledby={`tab-${selected}`} tabIndex={0}>
-        {circles.map((circle) => <NookWindow key={circle.id} circle={circle} />)}
-        {!circles.length && <p className="sol-empty" role="status">No Nooks match “{query}”. Try another search.</p>}
-      </div>
-    </section>
-  );
+const tabs = [{ id:'my', label:'All Nooks' }, { id:'shared',label:'Shared with me' }, { id:'recent',label:'Recent' }] as const;
+function Collection({ viewerId }: { viewerId: number }) {
+  const params = useSearchParams(); const router = useRouter(); const [query,setQuery] = useState('');
+  const selected = tabs.find(tab=>tab.id===params.get('tab'))?.id || 'my';
+  const { data,error,mutate } = useNookData<NookListResponse>('/api/nooks',viewerId);
+  const nooks = filterNooks(data?.nooks || [],selected,query);
+  function select(id: string) { const next=new URLSearchParams(params.toString());next.set('tab',id);router.replace(`/?${next}#nooks`,{scroll:false}); }
+  return <section id="nooks" className="library-wall" aria-label="Your private library wall"><div className="library-tabs" role="tablist" aria-label="Nook collections">{tabs.map((tab,index)=><button key={tab.id} role="tab" id={`tab-${tab.id}`} aria-selected={selected===tab.id} aria-controls="nook-collection" tabIndex={selected===tab.id?0:-1} onClick={()=>select(tab.id)} onKeyDown={event=>{const offset=event.key==='ArrowRight'?1:event.key==='ArrowLeft'?-1:0;const target=event.key==='Home'?tabs[0]:event.key==='End'?tabs[2]:offset?tabs[(index+offset+3)%3]:null;if(target){event.preventDefault();select(target.id);document.getElementById(`tab-${target.id}`)?.focus();}}}>{tab.label}{tab.id==='my' && data && <span>{data.nooks.length}</span>}</button>)}</div>
+    <label className="sol-search library-search"><DesignIcon name="search"/><span className="sr-only">Search Nooks</span><input id="library-search" type="search" value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search your Nooks…" /></label>
+    {selected==='recent' && <p className="real-nook-hint">Most recently updated Nooks first. This is not a visit history.</p>}
+    <div id="nook-collection" className="nook-collection" role="tabpanel" aria-labelledby={`tab-${selected}`} tabIndex={0}>{error ? <NookRequestState error={error} retry={()=>void mutate()}/> : !data ? <p role="status">Opening your Nooks…</p> : nooks.length ? nooks.map(nook=><NookWindow key={nook.id} nook={nook}/>) : <p className="sol-empty" role="status">{query ? 'No Nooks match your search.' : selected==='shared' ? 'No shared Nooks yet. Accepted member invitations will appear here.' : 'Your library is waiting for its first Nook. Create a Nook to begin.'}</p>}</div>
+  </section>;
 }
-
-export function Library() {
-  const notice = useNotice();
-  return (
-    <main id="main-content" className="sol-library">
-      <img className="library-sunlight" src="/solibra/soft-sunlight.svg" width={579.755} height={589} alt="" aria-hidden="true" />
-      <section className="library-welcome">
-        <p className="sol-eyebrow">YOUR SHARED MEMORY LIBRARY</p>
-        <h1>A little library.<br />A lifetime together.</h1>
-        <p>Good morning, Sofía. There’s a story waiting for you.</p>
-        <Button className="sol-button" asChild><Link href="/nooks/new"><Plus size={16} />Create Nook</Link></Button>
-      </section>
-      <Suspense fallback={<div className="library-wall" aria-busy="true">Opening your library…</div>}><LibraryCollection /></Suspense>
-      <section className="library-invitation" aria-label="An invitation to share">
-        <h2>Better with your people.</h2>
-        <button onClick={() => notice('Invite your people', 'Sharing invitations are coming next. No invitation is sent from this sample library.')}>
-          Invite someone into your family’s story. <ArrowRight size={16} />
-        </button>
-      </section>
-      <RecentAdditions entries={sampleRecentAdditions} />
-    </main>
-  );
+export function Library({ user }: { user: AccountProfile | null }) {
+  return <main id="main-content" className="sol-library"><img className="library-sunlight" src="/solibra/soft-sunlight.svg" width={579.755} height={589} alt="" aria-hidden="true"/>
+    <section className="library-welcome"><p className="sol-eyebrow">YOUR SHARED MEMORY LIBRARY</p><h1>A little library.<br/>A lifetime together.</h1><p>{user ? `Welcome${user.name?.trim() ? `, ${user.name.trim()}` : ''}. Your shared stories have a home here.` : 'Sign in to browse your private Nooks and shared memories.'}</p><Button className="sol-button" asChild><Link href={user?'/nooks/new':'/sign-in'}><Plus size={16}/>{user?'Create Nook':'Sign In'}</Link></Button></section>
+    {user ? <><Suspense fallback={<p className="library-wall" role="status">Opening your library…</p>}><Collection key={user.id} viewerId={user.id}/></Suspense><InvitationInbox viewerId={user.id}/><section className="recent-additions"><h2>Recent Additions</h2><p>Open a Nook to browse its memories. A cross-Nook activity feed is not connected yet.</p></section></> : <section className="library-wall sol-empty"><h2>A private place for your people.</h2><p>Your Nooks are only shown after you sign in.</p><Link className="sol-outline-button" href="/sign-up">Create an account</Link><Link className="sol-text-link" href="/demo">Explore the labeled demo library →</Link></section>}
+  </main>;
 }

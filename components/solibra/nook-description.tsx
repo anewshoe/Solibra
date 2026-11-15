@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { updateNookSchema, type Nook, type NookResponse } from '@/lib/nooks/types';
 
 // Supply only after reading the real Nook with the existing authenticated session.
@@ -15,6 +15,7 @@ export function NookDescription({ description, editor }: { description?: string 
   const [saved, setSaved] = useState<{ value: string | null } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => { setSaved(null); }, [description]);
   const fieldId = useId();
   const value = saved ? saved.value : description;
   const canEdit = editor?.nook.role === 'owner' && Number.isSafeInteger(editor.nook.id) && editor.nook.id > 0;
@@ -33,6 +34,7 @@ export function NookDescription({ description, editor }: { description?: string 
   }
   return <div className="nook-description">
     <p>{value?.trim() || 'A little space for your shared memories.'}</p>
+    {error && !canEdit && <p role="alert">Owner access is required to edit this description. No further changes will be sent.</p>}
     {canEdit && !editing && <button className="description-edit sol-text-link" onClick={() => { setDraft(value || ''); setError(null); setEditing(true); }}>Edit description</button>}
     {canEdit && editing && <form onSubmit={submit} aria-label="Edit Nook description">
       <label htmlFor={fieldId}>Nook description</label>
