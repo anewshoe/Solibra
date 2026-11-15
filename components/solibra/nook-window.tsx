@@ -1,19 +1,49 @@
 'use client';
 
 import Link from 'next/link';
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import type { Nook } from '@/lib/nooks/types';
 import type { SampleCircle } from '@/lib/fixtures/library';
+import { sampleMemories } from '@/lib/fixtures/library';
 import { NookMemorabilia } from './nook-memorabilia';
 import { WindowMemories } from './window-memories';
 
-export function NookWindow({ circle, nook, initialOpen = false, viewerId }: ({ circle: SampleCircle; nook?: never } | { nook: Nook; circle?: never }) & { initialOpen?: boolean; viewerId?: number }) {
+function Shutters() {
+  return <>{(['left', 'right'] as const).map(side => <span className={`nook-door nook-door-${side}`} key={side}>
+    {[0, 1, 2, 3, 4].map(line => <span className="nook-door-line" style={{ top: `${31.57 + line * 10.5}%` }} key={line} />)}
+    <span className="nook-handle" />
+  </span>)}</>;
+}
+
+export function NookWindow({ circle, nook, initialOpen = false, viewerId, publicPreview = false }: ({ circle: SampleCircle; nook?: never } | { nook: Nook; circle?: never }) & { initialOpen?: boolean; viewerId?: number; publicPreview?: boolean }) {
   const title = nook ? nook.name : circle!.title;
   const id = nook ? nook.id : circle!.id;
   const [open, setOpen] = useState(initialOpen);
   const titleId = useId();
   const interiorId = useId();
+  const toggleRef = useRef<HTMLButtonElement>(null);
+
+  if (publicPreview && circle) {
+    const books = sampleMemories.filter(memory => memory.circleId === circle.id).slice(0, 4);
+    return <article className="nook-window landing-window" data-open={open} aria-labelledby={titleId} onKeyDown={event => {
+      if (event.key === 'Escape') { setOpen(false); toggleRef.current?.focus(); }
+    }}>
+      <div className="landing-window-invitation" aria-hidden="true"><span>Click me!</span><svg viewBox="0 0 90 60" fill="none"><path d="M8 8C62 0 80 22 42 49m0 0 1-15m-1 15 16-2" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+      <div className="nook-arch-button"><div className="nook-arch">
+        <span className="nook-blush-border" aria-hidden="true" />
+        <div className="nook-interior landing-window-interior" id={interiorId} hidden={!open}>
+          <span className="landing-window-welcome">Little stories, waiting for you</span>
+          <div className="landing-window-books">{books.map((book, index) => <Link href="/demo" className="landing-window-book" data-cover={index} key={book.id} aria-label={`Explore ${book.title} in the demo Library`}>
+            <span className="book-imprint">SOLIBRA</span><span>{book.title}</span><small>{book.category === 'voice' ? 'A familiar voice' : book.category === 'recipe' ? 'Made with love' : 'A little moment'}</small>
+          </Link>)}</div>
+        </div>
+        <button type="button" className="nook-door-space landing-window-shutters" aria-label="Open the demo window" aria-controls={interiorId} aria-expanded={open} aria-hidden={open} tabIndex={open ? -1 : 0} onClick={() => { setOpen(true); toggleRef.current?.focus(); }}><Shutters /></button>
+      </div></div>
+      <h3 id={titleId}>A shelf full of possibilities.</h3>
+      <button ref={toggleRef} type="button" className="landing-window-control" aria-expanded={open} aria-controls={interiorId} onClick={() => setOpen(value => !value)}>{open ? 'Close the window' : 'Open the window'} <ArrowRight size={16} aria-hidden="true" /></button>
+    </article>;
+  }
 
   return (
     <article className="nook-window" aria-labelledby={titleId} data-open={open}>
@@ -30,12 +60,7 @@ export function NookWindow({ circle, nook, initialOpen = false, viewerId }: ({ c
           <span className="nook-blush-border" />
           <span className="nook-interior" id={interiorId}>{circle ? <NookMemorabilia collection={circle.collection} /> : <WindowMemories nookId={nook!.id} viewerId={viewerId} open={open}/>}</span>
           <span className="nook-door-space">
-            {(['left', 'right'] as const).map((side) => (
-              <span className={`nook-door nook-door-${side}`} key={side}>
-                {[0, 1, 2, 3, 4].map((line) => <span className="nook-door-line" style={{ top: `${31.57 + line * 10.5}%` }} key={line} />)}
-                <span className="nook-handle" />
-              </span>
-            ))}
+            <Shutters />
           </span>
         </span>
       </button>
