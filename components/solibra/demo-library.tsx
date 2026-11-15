@@ -63,7 +63,7 @@ export function DemoLibrary() {
       <Suspense fallback={<div className="library-wall"><WindowSkeletons/></div>}><LibraryCollection /></Suspense>
       <section className="library-invitation" aria-label="An invitation to share">
         <h2>Better with your people.</h2>
-        <button onClick={() => notice('Invite your people', 'Sharing invitations are coming next. No invitation is sent from this sample library.')}>
+        <button onClick={() => notice('Invite your people', 'This fictional demo does not create invitations. Sign in and open a real Nook to invite your people.')}>
           Invite someone into your family’s story. <ArrowRight size={16} />
         </button>
       </section>

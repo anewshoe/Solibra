@@ -273,3 +273,6 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Match the root canvas during native rubber-band scrolling on Solibra pages. */
+html:has(.solibra), body:has(.solibra) { background-color: #5a222d; }

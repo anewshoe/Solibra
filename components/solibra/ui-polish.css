@@ -110,3 +110,10 @@
   .library-welcome > .official-logo { width: min(280px,100%); margin-bottom: 8px; }
 }
 @media(prefers-reduced-motion: reduce) { .sol-skeleton, .sol-loading-mark { animation: none; opacity: .75; } }
+
+.nook-settings { margin-block: 16px 24px; }
+.nook-settings form { max-width: 640px; margin-top: 16px; }
+.nook-settings-swatch { background: var(--book-cover,var(--sol-blush)); border-color: var(--book-edge,var(--sol-pink)); }
+.copy-memory-link { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-block: 16px 24px; }
+.copy-memory-link small { color: var(--sol-secondary); }
+.copy-memory-link p { flex-basis: 100%; font-size: 14px; }

@@ -33,7 +33,7 @@ export function NookInterior({ circle }: { circle: SampleCircle }) {
       <nav aria-label="Breadcrumb" className="sol-breadcrumb"><Link href="/demo">Demo Library</Link><span aria-hidden="true">/</span><span aria-current="page">{circle.title}</span></nav>
       <div className="nook-introduction">
         <div><h1>{circle.title}</h1><NookDescription description={circle.description} /></div>
-        <Button className="sol-button" onClick={() => notice('Add a memory', 'Memory uploads are coming in a later frontend pass. The memories shown here are sample data; this action does not upload or save anything.')}><Plus size={16} />Add memory</Button>
+        <Button className="sol-button" onClick={() => notice('Add a memory', 'These are fictional sample memories. This demo does not upload or save anything; sign in and open a real Nook to add your own memories.')}><Plus size={16} />Add memory</Button>
       </div>
       <div className="nook-members">
         <div className="nook-member-avatars">{sampleMembers.map((member) => <Avatar key={member.name} className="size-9"><AvatarImage src={member.image} alt={member.name} /><AvatarFallback>{member.name[0]}</AvatarFallback></Avatar>)}</div>
