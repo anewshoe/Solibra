@@ -67,8 +67,7 @@ export const signIn = validatedAction(signInSchema, async (data) => {
   if (userWithTeam.length === 0) {
     return {
       error: 'Invalid email or password. Please try again.',
-      email,
-      password
+      email
     };
   }
 
@@ -82,8 +81,7 @@ export const signIn = validatedAction(signInSchema, async (data) => {
   if (!isPasswordValid) {
     return {
       error: 'Invalid email or password. Please try again.',
-      email,
-      password
+      email
     };
   }
 
@@ -92,7 +90,7 @@ export const signIn = validatedAction(signInSchema, async (data) => {
     logActivity(foundTeam?.id, foundUser.id, ActivityType.SIGN_IN)
   ]);
 
-  redirect('/dashboard');
+  redirect('/');
 });
 
 const signUpSchema = z.object({
@@ -143,7 +141,7 @@ export const signUp = validatedAction(signUpSchema, async (data) => {
     throw error;
   }
   await setSession(createdUser);
-  redirect('/dashboard');
+  redirect('/profile/setup');
 });
 
 export async function signOut() {
@@ -173,27 +171,18 @@ export const updatePassword = validatedActionWithUser(
 
     if (!isPasswordValid) {
       return {
-        currentPassword,
-        newPassword,
-        confirmPassword,
         error: 'Current password is incorrect.'
       };
     }
 
     if (currentPassword === newPassword) {
       return {
-        currentPassword,
-        newPassword,
-        confirmPassword,
         error: 'New password must be different from the current password.'
       };
     }
 
     if (confirmPassword !== newPassword) {
       return {
-        currentPassword,
-        newPassword,
-        confirmPassword,
         error: 'New password and confirmation password do not match.'
       };
     }
@@ -227,7 +216,6 @@ export const deleteAccount = validatedActionWithUser(
     const isPasswordValid = await comparePasswords(password, user.passwordHash);
     if (!isPasswordValid) {
       return {
-        password,
         error: 'Incorrect password. Account deletion failed.'
       };
     }
