@@ -222,3 +222,22 @@ test('perspective choice keeps one visible editor, preserves text, resets resume
  const audioResources=detailResources({'/api/nooks/42/artifacts/7':{data:{artifact:{...artifact,type:'audio'}}},[key]:{data:{contributions:[actual]}}});
  const Page=detailsLoader(audioResources)('@/components/solibra/real-memory-details').RealMemoryDetails;const html=renderToStaticMarkup(React.createElement(Page,{nookId:42,artifactId:7,viewerId:5}));assert.equal((html.match(/contributions\/10\/media\?v=/g)||[]).length,1);assert.ok(html.includes('Original recording'));
 });
+
+test('another member’s saved audio never becomes the missing creator’s original recording',()=>{
+ const other={...contribution,id:88,authorId:6,type:'audio',audioStorageKey:'private-other',content:null};
+ const resources=detailResources({'/api/nooks/42/artifacts/7':{data:{artifact:{...artifact,type:'audio',creatorId:5}}},'/api/nooks/42/members':{data:{members:[member,{...member,id:92,userId:6,user:{id:6,name:'Another member'}}]}},'/api/nooks/42/artifacts/7/contributions':{data:{contributions:[other]}}});
+ const Page=detailsLoader(resources)('@/components/solibra/real-memory-details').RealMemoryDetails;
+ const html=renderToStaticMarkup(React.createElement(Page,{nookId:42,artifactId:7,viewerId:5}));assert.ok(!html.includes('aria-label="Original voice memory"'));assert.ok(html.includes('creator’s original recording is not attached'));assert.ok(html.includes('Another member'));assert.equal((html.match(/contributions\/88\/media\?v=/g)||[]).length,1);
+});
+
+test('sharing a saved voice reply is explicit, artifact-linked, and protected against double clicks',async()=>{
+ const h=hookReact();const resources=detailResources({'/api/nooks/42/artifacts/7/contributions':{data:{contributions:[{...contribution,id:12,type:'audio',content:null,audioStorageKey:'private-recording'}]}}});
+ for(const value of Object.values(resources))value.mutate=async()=>{};
+ const base=loader()('@/lib/frontend/real-messages');const posts=[];let resolve;
+ const load=detailsLoader(resources,{react:h.react,'@/lib/frontend/real-messages':{...base,sendNookMessage:async(n,body)=>{posts.push({n,body});return new Promise(done=>resolve=done);}}});
+ const Page=load('@/components/solibra/real-memory-details').RealMemoryDetails;const render=()=>{h.reset();return Page({nookId:42,artifactId:7,viewerId:5});};
+ const button=nodes(render(),n=>n.type==='button'&&n.props.children==='Share reply in conversation')[0];assert.ok(button);assert.equal(posts.length,0);
+ button.props.onClick();assert.equal(posts.length,0);assert.equal(input(render(),'textarea').props.value,'I added my voice to this memory.');
+ const submit=()=>input(render(),'form').props.onSubmit({preventDefault(){}});submit();submit();assert.equal(posts.length,1);assert.deepEqual(posts[0],{n:42,body:{content:'I added my voice to this memory.',artifactId:7}});
+ resolve({message:{id:101,nookId:42,senderId:5,content:posts[0].body.content,artifactId:7,createdAt:artifact.createdAt}});await flush();assert.ok(nodes(render(),n=>n.props?.role==='status').some(n=>String(n.props.children).includes('Shared')));h.unmount();
+});
