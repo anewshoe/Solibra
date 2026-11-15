@@ -41,7 +41,13 @@ export async function nookResponse<T>(
     }
     const user = await getUser();
     if (!user) throw new NookError(401, 'UNAUTHENTICATED', 'Sign in to access Nooks.');
-    return Response.json(await action(user), { status, headers });
+    const result = await action(user);
+    if (result instanceof Response) {
+      // Private media endpoints reuse this session/origin guard for streams.
+      for (const [name, value] of Object.entries(headers)) result.headers.set(name, value);
+      return result;
+    }
+    return Response.json(result, { status, headers });
   } catch (error) {
     if (!(error instanceof NookError)) console.error('Nook operation failed.', error);
     const known = error instanceof NookError;
