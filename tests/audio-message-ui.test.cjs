@@ -36,3 +36,16 @@ test('sender audio UI exposes explicit processing and replacement, with no autom
  assert.match(html,/Transcribe and translate/);assert.match(html,/Replace recording/);assert.match(html,/Remove recording/);assert.match(html,/<select/);
 });
 
+
+test('unfinished voice messages offer sender recovery without claiming delivery or deleting drafts',()=>{
+ const Component=loader({'@/components/solibra/use-nook-data':{useNookData:()=>({mutate:async()=>{}})}})('@/components/solibra/audio-message').AudioMessage;
+ const message={id:30,nookId:10,senderId:1,type:'audio',audioUrl:null};
+ const own=render(Component,{message,viewerId:1,canManage:true,onChanged:async()=>{}});assert.match(own,/draft has no confirmed recording/);assert.match(own,/Replace recording/);assert.doesNotMatch(own,/Remove recording/);
+ const other=render(Component,{message,viewerId:2,canManage:false,onChanged:async()=>{}});assert.match(other,/awaiting a recording/);assert.doesNotMatch(other,/Replace recording/);
+});
+
+test('translation-read authorization failure hides cached private message audio and text',()=>{
+ const api=loader()('@/lib/frontend/nook-api');
+ const Component=loader({'@/lib/frontend/nook-api':api,'@/components/solibra/use-nook-data':{useNookData:()=>({data:{translations:[{targetLanguage:'en',translatedText:'PRIVATE TRANSLATION'}]},error:new api.NookRequestError(403,'No membership')})}})('@/components/solibra/audio-message').AudioMessage;
+ const html=render(Component,{message:{id:30,nookId:10,type:'audio',audioUrl:'/api/nooks/10/messages/30/media',originalTranscript:'PRIVATE TRANSCRIPT'},viewerId:2,canManage:false,onChanged:async()=>{}});assert.match(html,/check your access/);assert.doesNotMatch(html,/PRIVATE|<audio/);
+});

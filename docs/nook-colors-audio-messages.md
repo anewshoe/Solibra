@@ -176,3 +176,9 @@ ALTER TABLE "messages" ADD CONSTRAINT "messages_status_check" CHECK ("messages".
 ALTER TABLE "messages" ADD CONSTRAINT "messages_content_check" CHECK (("messages"."type" = 'text' AND char_length(btrim("messages"."content")) BETWEEN 1 AND 5000) OR ("messages"."type" = 'audio' AND char_length("messages"."content") <= 5000));--> statement-breakpoint
 ALTER TABLE "teams" ADD CONSTRAINT "teams_door_color_check" CHECK ("teams"."door_color" IN ('pink', 'lilac', 'blue', 'green', 'yellow'));
 ```
+
+### Unfinished voice-message recovery
+
+A message record is created before its private recording is attached. If upload fails, the composer retains the confirmed message ID and local audio for attachment retry. Discarding local audio does not delete the server record; the sender is told to refresh and use **Replace recording** on the unfinished message. Other members see an awaiting-recording notice. There is no draft-message deletion API, so abandoned records can remain. Uncertain message creation is never automatically retried. Closing the recorder stops capture while retaining its local preview.
+
+Recording-limit labels use the shared two-minute / 4 MiB constants. Translation-read authorization failures hide cached private audio and text; ordinary translation errors continue to leave authorized playback available.

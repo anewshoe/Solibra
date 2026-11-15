@@ -65,3 +65,8 @@ test('miniature books appear only during initial authorized open-window loading'
   const html=render(Mini,{nookId:7,viewerId:5,open});assert.equal((html.match(/window-memory-book sol-skeleton/g)||[]).length,count);assert.ok(!html.includes('<a'));
  }
 });
+
+test('demo Library uses shared official branding without the obsolete sunlight image or private reads',()=>{
+ const Demo=loader({'next/navigation':{useRouter:()=>({replace(){}}),useSearchParams:()=>new URLSearchParams('search=1')},'@/components/solibra/shell':{useNotice:()=>()=>{},DesignIcon:()=>null},'@/components/solibra/use-nook-data':{useNookData:()=>{throw new Error('Demo cannot read private Nooks');}}})('@/components/solibra/demo-library').DemoLibrary;
+ const html=render(Demo,{});assert.ok(html.includes('solibra-logo.png'));assert.ok(html.includes('Fictional Nooks'));assert.ok(html.includes('Good morning, Sofía'));assert.ok(html.includes('Create a real Nook'));assert.ok(html.includes('Search Nooks'));assert.ok(!html.includes('soft-sunlight'));assert.ok(!html.includes('library-sunlight'));assert.ok(!html.includes('YOUR SHARED MEMORY LIBRARY'));
+});
