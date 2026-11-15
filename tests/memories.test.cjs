@@ -269,7 +269,7 @@ test('messages use the authenticated sender and validate a same-Nook artifact be
   const response = await call(endpoints[7]);
   assert.equal(response.status, 201);
   assert.equal((await response.json()).message.senderId, 2);
-  assert.deepEqual(fixture.writes[0].values, { nookId: 10, senderId: 2, content: message.content, artifactId: 20 });
+  assert.deepEqual(fixture.writes[0].values, { nookId: 10, senderId: 2, content: message.content, artifactId: 20, type:'text', processingStatus:null });
   fixture.done();
 });
 

@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { signOut } from '@/app/(login)/actions';
-import type { User } from '@/lib/db/schema';
+import type { AccountProfile } from '@/lib/frontend/account';
 
 const NoticeContext = createContext<(title: string, description: string) => void>(() => {});
 export const useNotice = () => useContext(NoticeContext);
@@ -30,7 +30,7 @@ export function Mascot({ listening = false }: { listening?: boolean }) {
 }
 
 function AccountMenu() {
-  const { data: user } = useSWR<User | null>('/api/user', (url: string) => fetch(url).then((res) => res.json()));
+  const { data: user } = useSWR<AccountProfile | null>('/api/user', (url: string) => fetch(url).then((res) => res.json()));
   const router = useRouter();
 
   async function handleSignOut() {
@@ -45,7 +45,7 @@ function AccountMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="sol-account" aria-label="Account menu">
-        <Avatar className="size-12"><AvatarFallback>{(user.name || user.email).slice(0, 1).toUpperCase()}</AvatarFallback></Avatar>
+        <Avatar className="size-12">{user.avatarUrl && <AvatarImage src={user.avatarUrl} alt="Your profile photo" />}<AvatarFallback>{(user.name || user.email).slice(0, 1).toUpperCase()}</AvatarFallback></Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem asChild><Link href="/profile"><UserRound /> View Profile</Link></DropdownMenuItem>
@@ -59,7 +59,7 @@ function AccountMenu() {
 export function SolibraShell({ children, signedOut = false }: { children: React.ReactNode; signedOut?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { data: account } = useSWR<User | null>('/api/user', (url: string) => fetch(url).then(res => res.json()));
+  const { data: account } = useSWR<AccountProfile | null>('/api/user', (url: string) => fetch(url).then(res => res.json()));
   const publicHome = signedOut && pathname === '/';
   const inNook = pathname.startsWith('/circles/');
   const inMessages = pathname === '/messages' || pathname.startsWith('/messages/');
@@ -71,7 +71,10 @@ export function SolibraShell({ children, signedOut = false }: { children: React.
   return (
     <NoticeContext.Provider value={showNotice}>
       <a href="#main-content" className="sol-skip">Skip to content</a>
-      {!publicHome && <header className={`sol-header ${inNook ? 'sol-header-nook' : ''} ${pathname.startsWith('/messages/') ? 'sol-header-conversation' : ''}`}>
+      {publicHome ? <header className="sol-header landing-header"><div className="sol-header-inner">
+        <Link href="/" className="sol-logo" aria-label="Solibra home"><BrandLogo /></Link>
+        <nav className="landing-navigation" aria-label="Main navigation"><Link href="/sign-in">Sign In</Link><Link className="sol-button" href="/sign-up">Create an Account</Link></nav>
+      </div></header> : <header className={`sol-header ${inNook ? 'sol-header-nook' : ''} ${pathname.startsWith('/messages/') ? 'sol-header-conversation' : ''}`}>
         <div className="sol-header-inner">
           <Link href="/" className="sol-logo" aria-label="Solibra Library"><BrandLogo /></Link>
           <nav aria-label="Main navigation" className="sol-desktop-nav">

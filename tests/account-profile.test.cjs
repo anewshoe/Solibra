@@ -89,7 +89,7 @@ test('profile server guard rejects unsigned requests and returns only profile-sa
   let current = null;
   const guard = loader({ 'server-only': {}, '@/lib/db/queries': { getUser: async () => current }, 'next/navigation': { redirect } })('@/lib/auth/require-profile-user');
   await assert.rejects(guard.requireProfileUser(),error=>error.destination==='/sign-in'); current=user;
-  assert.deepEqual(await guard.requireProfileUser(),{ id:user.id,name:null,email:user.email });
+  assert.deepEqual(await guard.requireProfileUser(),{ id:user.id,name:null,email:user.email,avatarUrl:null });
   const helpers = loader()('@/lib/frontend/account');
   assert.equal(helpers.withoutPasswordHash(user).passwordHash,undefined);
   assert.equal(helpers.withoutPasswordHash(null),null);

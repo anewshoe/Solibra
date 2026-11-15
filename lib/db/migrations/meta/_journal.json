@@ -29,6 +29,20 @@
       "when": 1794702305604,
       "tag": "0003_memory_backend",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794733065849,
+      "tag": "0004_user_avatar",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794739797286,
+      "tag": "0005_nook_colors_audio_messages",
+      "breakpoints": true
     }
   ]
 }

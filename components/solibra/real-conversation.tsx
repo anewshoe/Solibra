@@ -13,6 +13,7 @@ import { useConversationViewport } from './use-conversation-viewport';
 import { useMessageComposer } from './use-message-composer';
 import { NookRequestState } from './nook-request-state';
 import { NookWindow } from './nook-window';
+import { AudioMessage, AudioMessageComposer } from './audio-message';
 import { SolibraEmote } from './solibra-emote';
 
 export function RealConversation({nookId,viewerId}:{nookId:number;viewerId:number}) {
@@ -56,7 +57,7 @@ export function RealConversation({nookId,viewerId}:{nookId:number;viewerId:numbe
           {!messages.length?<div className="conversation-empty"><SolibraEmote variant="wave" size={88}/><h3>A little hello goes a long way.</h3><p>This shared conversation is ready for your first message.</p></div>:messages.map(message=>{
             const outgoing=message.senderId===viewerId;
             const artifact=message.artifactId===null||artifacts.error?null:artifacts.data?.artifacts.find(item=>item.id===message.artifactId&&item.nookId===nookId);
-            return <article className={`conversation-message message-text ${outgoing?'message-outgoing':'message-incoming'}`} key={message.id} data-message-id={message.id}><div className="message-bubble"><p>{message.content}</p><small>{senderName(message,viewerId,people)} · <time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'})}</time></small>{message.artifactId!==null&&<p className="real-message-artifact">Memory: {artifact?<Link href={realMemoryHref(nookId,artifact.id)}>{artifact.title} →</Link>:'Memory reference unavailable'}</p>}</div></article>;
+            return <article className={`conversation-message message-text ${outgoing?'message-outgoing':'message-incoming'}`} key={message.id} data-message-id={message.id}><div className="message-bubble">{message.content && <p>{message.content}</p>}{message.type==='audio'&&<AudioMessage message={message} viewerId={viewerId} canManage={outgoing||nook.role==='owner'} onChanged={()=>history.mutate()}/>}<small>{senderName(message,viewerId,people)} · <time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'})}</time></small>{message.artifactId!==null&&<p className="real-message-artifact">Memory: {artifact?<Link href={realMemoryHref(nookId,artifact.id)}>{artifact.title} →</Link>:'Memory reference unavailable'}</p>}</div></article>;
           })}
         </div>
         <form className="message-composer" aria-label="Group message composer" onSubmit={event=>{event.preventDefault();if(composer.linkedArtifactId!=null&&!selectedMemory)return;void composer.send();}}>
@@ -66,8 +67,9 @@ export function RealConversation({nookId,viewerId}:{nookId:number;viewerId:numbe
           <div className="composer-row"><label className="composer-input"><span className="sr-only">Message</span><textarea rows={1} maxLength={5000} value={composer.draft} disabled={composer.pending||composer.needsRefresh} onChange={event=>composer.setDraft(event.target.value)} onKeyDown={event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.nativeEvent.isComposing){event.preventDefault();if(!composer.pending)event.currentTarget.form?.requestSubmit();}}} placeholder="Share a little moment…" aria-describedby="group-message-help"/></label><button className="sol-icon-button composer-send" type="submit" disabled={composer.pending||composer.needsRefresh||!composer.draft.trim()||composer.linkedArtifactId!=null&&!selectedMemory} aria-label={composer.pending?'Sending message':'Send message'}><Send size={20}/></button></div>
           <p id="group-message-help" className="real-message-help">{composer.draft.length} / 5,000 · Shift+Enter for a new line</p>{composer.pending&&<p role="status">Sending…</p>}{composer.notice&&<p role="status">{composer.notice}</p>}{composer.error&&<div role="alert"><p>{composer.error.message}</p><button className="sol-text-link" type="button" onClick={()=>void history.mutate().then(result=>{if(result?.messages&&composer.needsRefresh&&window.confirm('Check the refreshed conversation. If your message already appears, cancel. Allow another send only if it is missing.'))composer.confirmRetryAfterInspection();}).catch(()=>{})}>Refresh and check before retrying</button></div>}
         </form>
+        <AudioMessageComposer nookId={nookId} onSent={async()=>{nearBottom.current=true;await history.mutate();}}/>
       </section>
-      <aside className="messages-context"><h2>A shared thread</h2><NookWindow nook={nook} viewerId={viewerId} initialOpen/><p>One conversation for everyone in this Nook. Refresh to check for new messages.</p><p>Share a memory from its details page. Voice messages aren’t connected here yet.</p></aside>
+      <aside className="messages-context"><h2>A shared thread</h2><NookWindow nook={nook} viewerId={viewerId} initialOpen/><p>One conversation for everyone in this Nook. Refresh to check for new messages.</p><p>Request a memory, share one from its details page, or record a private voice message.</p></aside>
     </div>
   </main>;
 }

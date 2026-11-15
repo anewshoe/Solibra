@@ -98,6 +98,16 @@ test('real rendering supports empty/populated conversations, actual senders and 
  }
 });
 
+test('conversation combines memory requests, audio playback and the voice composer',()=>{
+ const audio={...message,type:'audio',audioUrl:'/api/nooks/42/messages/1/media'};
+ const Component=conversationLoader(resources([audio]))('@/components/solibra/real-conversation').RealConversation;
+ const html=renderToStaticMarkup(React.createElement(Component,{nookId:42,viewerId:5}));
+ assert.ok(html.includes('Request a memory'));
+ assert.ok(html.includes('aria-label="Voice message composer"'));
+ assert.ok(html.includes('src="/api/nooks/42/messages/1/media"'));
+ assert.ok(!html.includes('Voice messages aren’t connected here yet'));
+});
+
 test('revoked or unsigned read failures suppress all cached messages',()=>{
  for(const status of [401,403,404]){
   const api=loader()('@/lib/frontend/nook-api');const data=resources([{...message,content:'PRIVATE_CACHED_MESSAGE'}]);data['/api/nooks/42/messages'].error=new api.NookRequestError(status,`Blocked ${status}`);

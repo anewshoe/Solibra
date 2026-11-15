@@ -9,6 +9,7 @@ import '@/components/solibra/account.css';
 import '@/components/solibra/create-nook.css';
 import '@/components/solibra/real-memories.css';
 import '@/components/solibra/ui-polish.css';
+import '@/components/solibra/marketing.css';
 
 const body = DM_Sans({ subsets: ['latin'], variable: '--font-solibra-body' });
 const display = Fredoka({ subsets: ['latin'], weight: '500', variable: '--font-solibra-display' });

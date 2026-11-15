@@ -9,6 +9,8 @@
     "test:persisted-voice": "node --test tests/voice-persistence.test.cjs",
     "test:memories": "node --test tests/memories.test.cjs",
     "test:media": "node --test tests/media.test.cjs",
+    "test:avatars": "node --test tests/avatars.test.cjs",
+    "test:audio-messages": "node --test tests/audio-messages.test.cjs tests/audio-message-ui.test.cjs tests/recording-duration.test.cjs",
     "db:setup": "npx tsx lib/db/setup.ts",
     "db:seed": "npx tsx lib/db/seed.ts",
     "db:generate": "drizzle-kit generate",

@@ -17,6 +17,7 @@ export const users = pgTable('users', {
   name: varchar('name', { length: 100 }),
   email: varchar('email', { length: 255 }).notNull().unique(),
   passwordHash: text('password_hash').notNull(),
+  avatarStorageKey: text('avatar_storage_key'),
   role: varchar('role', { length: 20 }).notNull().default('member'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -27,9 +28,10 @@ export const teams = pgTable('teams', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 100 }).notNull(),
   description: text('description'),
+  doorColor: text('door_color').$type<'pink' | 'lilac' | 'blue' | 'green' | 'yellow'>().notNull().default('pink'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
+}, table => [check('teams_door_color_check', sql`${table.doorColor} IN ('pink', 'lilac', 'blue', 'green', 'yellow')`)]);
 
 export const teamMembers = pgTable('team_members', {
   id: serial('id').primaryKey(),
@@ -128,6 +130,12 @@ export const messages = pgTable('messages', {
   nookId: integer('nook_id').notNull().references(() => teams.id),
   senderId: integer('sender_id').notNull().references(() => users.id),
   content: text('content').notNull(),
+  type: varchar('type', { length: 20 }).$type<'text' | 'audio'>().notNull().default('text'),
+  audioStorageKey: text('audio_storage_key'),
+  originalTranscript: text('original_transcript'),
+  sourceLanguage: varchar('source_language', { length: 35 }),
+  processingStatus: varchar('processing_status', { length: 20 }).$type<'draft' | 'pending' | 'processing' | 'completed' | 'failed'>(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
   artifactId: integer('artifact_id'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (table) => [
@@ -137,7 +145,25 @@ export const messages = pgTable('messages', {
     foreignColumns: [artifacts.id, artifacts.nookId]
   }),
   index('messages_nook_created_idx').on(table.nookId, table.createdAt, table.id),
-  check('messages_content_check', sql`char_length(btrim(${table.content})) BETWEEN 1 AND 5000`),
+  check('messages_content_check', sql`(${table.type} = 'text' AND char_length(btrim(${table.content})) BETWEEN 1 AND 5000) OR (${table.type} = 'audio' AND char_length(${table.content}) <= 5000)`),
+  check('messages_audio_state_check', sql`(${table.type} = 'text' AND ${table.audioStorageKey} IS NULL AND ${table.originalTranscript} IS NULL AND ${table.sourceLanguage} IS NULL AND ${table.processingStatus} IS NULL) OR ${table.type} = 'audio'`),
+  check('messages_audio_key_check', sql`${table.audioStorageKey} IS NULL OR (${table.audioStorageKey} ~ '^[A-Za-z0-9][A-Za-z0-9_./-]*$' AND char_length(${table.audioStorageKey}) <= 1024 AND ${table.audioStorageKey} !~ '(^|/)[.]{1,2}(/|$)')`),
+  check('messages_language_check', sql`${table.sourceLanguage} IS NULL OR ${table.sourceLanguage} ~ '^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8})*$'`),
+  check('messages_status_check', sql`${table.processingStatus} IS NULL OR ${table.processingStatus} IN ('draft','pending','processing','completed','failed')`),
+]);
+
+export const messageTranslations = pgTable('message_translations', {
+  id: serial('id').primaryKey(),
+  messageId: integer('message_id').notNull().references(() => messages.id, { onDelete: 'cascade' }),
+  sourceLanguage: varchar('source_language', { length: 35 }).notNull(),
+  targetLanguage: varchar('target_language', { length: 35 }).notNull(),
+  translatedText: text('translated_text').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, table => [
+  unique('message_translations_languages_unique').on(table.messageId, table.sourceLanguage, table.targetLanguage),
+  check('message_translations_source_check', sql`${table.sourceLanguage} ~ '^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8})*$'`),
+  check('message_translations_target_check', sql`${table.targetLanguage} ~ '^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8})*$'`),
+  check('message_translations_text_check', sql`char_length(btrim(${table.translatedText})) > 0`),
 ]);
 
 export const translations = pgTable('translations', {

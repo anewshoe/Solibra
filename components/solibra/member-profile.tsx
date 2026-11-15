@@ -7,7 +7,7 @@ import { AccountAvatar } from './account-avatar';
 
 export function MemberProfileCard({ membership, nookName }: { membership: NookMembership; nookName: string }) {
   const joined = new Date(membership.joinedAt);
-  return <article className="member-profile-card"><AccountAvatar name={membership.user.name} email="" /><div><h3>{membership.user.name?.trim() || 'Nook member'}</h3><p>{membership.role === 'owner' ? 'Owner' : 'Member'} · {nookName}</p><small>{Number.isFinite(joined.getTime()) ? `Joined ${joined.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}` : 'Joined date unavailable'}</small></div></article>;
+  return <article className="member-profile-card"><AccountAvatar name={membership.user.name} email="" avatarUrl={membership.user.avatarUrl} /><div><h3>{membership.user.name?.trim() || 'Nook member'}</h3><p>{membership.role === 'owner' ? 'Owner' : 'Member'} · {nookName}</p><small>{Number.isFinite(joined.getTime()) ? `Joined ${joined.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}` : 'Joined date unavailable'}</small></div></article>;
 }
 
 export function NookMemberProfiles({ nook, viewerId, onClose }: { nook: Nook; viewerId: number; onClose: () => void }) {

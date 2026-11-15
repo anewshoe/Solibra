@@ -4,6 +4,7 @@ import { db } from '@/lib/db/drizzle';
 import { activityLogs, invitations, teamMembers, teams, users } from '@/lib/db/schema';
 import type { Team, Invitation } from '@/lib/db/schema';
 import { NookError } from './errors';
+import { avatarUrl } from '@/lib/avatars/types';
 import type {
   Nook, NookInvitation, NookMembership, NookRole,
   CreateNookRequest, UpdateNookRequest
@@ -18,7 +19,7 @@ function role(value: string): NookRole {
 }
 function nook(row: Team, membershipRole: string): Nook {
   return {
-    id: row.id, name: row.name, description: row.description,
+    id: row.id, name: row.name, description: row.description, doorColor: row.doorColor ?? 'pink',
     createdAt: row.createdAt.toISOString(), updatedAt: row.updatedAt.toISOString(),
     role: role(membershipRole)
   };
@@ -65,7 +66,7 @@ async function lockNook(tx: Transaction, nookId: number) {
 
 export async function createNookInTransaction(tx: Transaction, userId: number, data: CreateNookRequest) {
   const [row] = await tx.insert(teams).values({
-    name: data.name, description: data.description ?? null
+    name: data.name, description: data.description ?? null, doorColor: data.doorColor ?? 'pink'
   }).returning();
   await tx.insert(teamMembers).values({ teamId: row.id, userId, role: 'owner' });
   await audit(tx, row.id, userId, 'CREATE_NOOK');
@@ -113,11 +114,13 @@ export async function listNookMembers(userId: number, nookId: number): Promise<N
     const rows = await tx.select({
       id: teamMembers.id, nookId: teamMembers.teamId, userId: teamMembers.userId,
       role: teamMembers.role, joinedAt: teamMembers.joinedAt,
-      user: { id: users.id, name: users.name, email: users.email }
+      user: { id: users.id, name: users.name, email: users.email, avatarStorageKey: users.avatarStorageKey, updatedAt: users.updatedAt }
     }).from(teamMembers).innerJoin(users, eq(users.id, teamMembers.userId))
       .where(and(eq(teamMembers.teamId, nookId), isNull(users.deletedAt)))
       .orderBy(asc(teamMembers.id));
-    return rows.map((row) => ({ ...row, role: role(row.role), joinedAt: row.joinedAt.toISOString() }));
+    return rows.map((row) => ({ ...row, role: role(row.role), joinedAt: row.joinedAt.toISOString(),
+      user: { id: row.user.id, name: row.user.name, email: row.user.email, avatarUrl: avatarUrl(row.user) }
+    }));
   });
 }
 export async function inviteNookMember(userId: number, nookId: number, email: string, memberRole: NookRole) {

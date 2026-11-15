@@ -93,6 +93,20 @@ const lock = () => ({ table: 'teams', rows: [nook], params: [10], lock: true });
 const membership = (userId, rows) => ({ table: 'team_members', rows, params: [10, userId] });
 const rejects = (code) => (error) => error instanceof NookError && error.code === code;
 
+test('only the existing five door colors validate, with an omitted color remaining backward compatible',()=>{
+ for(const doorColor of ['pink','lilac','blue','green','yellow'])assert.equal(contracts.createNookSchema.safeParse({name:'Nook',doorColor}).success,true);
+ for(const doorColor of ['red','purple','',null]){assert.equal(contracts.createNookSchema.safeParse({name:'Nook',doorColor}).success,false);assert.equal(contracts.updateNookSchema.safeParse({doorColor}).success,false);}
+ assert.equal(contracts.createNookSchema.safeParse({name:'Old client'}).success,true);
+});
+test('creation saves a shared color, legacy creation defaults pink, and owners update color',async()=>{
+ for(const doorColor of [undefined,'blue']){
+  const fixture=scripted([{op:'insert',table:'teams',rows:[{...nook,doorColor:doorColor??'pink'}]},{op:'insert',table:'team_members'},{op:'insert',table:'activity_logs'}]);
+  assert.equal((await service.createNook(1,{name:nook.name,...(doorColor?{doorColor}:{})})).doorColor,doorColor??'pink');assert.equal(fixture.writes[0].values.doorColor,doorColor??'pink');fixture.done();
+ }
+ const fixture=scripted([lock(),membership(1,[owner]),{op:'update',table:'teams',rows:[{...nook,doorColor:'green'}]},{op:'insert',table:'activity_logs'}]);assert.equal((await service.updateNook(1,10,{doorColor:'green'})).doorColor,'green');assert.equal(fixture.writes[0].values.doorColor,'green');fixture.done();
+ const denied=scripted([lock(),membership(2,[member])]);await assert.rejects(service.updateNook(2,10,{doorColor:'yellow'}),rejects('FORBIDDEN'));denied.done();
+});
+
 test('Nook contracts reject blank names, oversized descriptions, unknown roles and actor spoofing', () => {
   assert.equal(contracts.createNookSchema.safeParse({ name: '  ' }).success, false);
   assert.equal(contracts.createNookSchema.safeParse({ name: 'Nook', userId: 1 }).success, false);

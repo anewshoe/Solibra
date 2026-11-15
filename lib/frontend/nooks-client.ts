@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { createNookSchema, inviteNookMemberSchema, nookRoleSchema, type CreateNookRequest, type InviteNookMemberRequest, type NookResponse, type NookInvitationResponse } from '@/lib/nooks/types';
+import { nookDoorColorSchema, createNookSchema, inviteNookMemberSchema, nookRoleSchema, type CreateNookRequest, type InviteNookMemberRequest, type NookResponse, type NookInvitationResponse } from '@/lib/nooks/types';
 
 const idSchema = z.number().int().positive().safe();
-const nookResponseSchema = z.object({ nook: z.object({ id: idSchema, name: z.string(), description: z.string().nullable(), role: nookRoleSchema, createdAt: z.string(), updatedAt: z.string() }) });
+const nookResponseSchema = z.object({ nook: z.object({ id: idSchema, doorColor: nookDoorColorSchema.default('pink'), name: z.string(), description: z.string().nullable(), role: nookRoleSchema, createdAt: z.string(), updatedAt: z.string() }) });
 const invitationResponseSchema = z.object({ invitation: z.object({ id: idSchema, nookId: idSchema, email: z.string().email(), role: nookRoleSchema, invitedBy: idSchema, invitedAt: z.string(), status: z.enum(['pending', 'accepted', 'revoked']) }) });
 const errorSchema = z.object({ error: z.object({ code: z.string(), message: z.string() }) });
 export class NookApiError extends Error {

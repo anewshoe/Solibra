@@ -111,7 +111,7 @@ test('optional description clears to null, cancel is available, and queued invit
   assert.ok(!h.has('Create pending invitations')); assert.ok(h.has('Continue to Ready')); assert.equal(writes, 0);
 });
 
-test('customization uses five retained radio colors and updated text, without adding API fields', async () => {
+test('customization uses five retained radio colors and sends the chosen color to the API', async () => {
   let payload;
   const h = harness({ createNook: async data => { payload = data; return { nook }; } });
   assert.ok(h.has('Customize your Nook'));
@@ -126,7 +126,7 @@ test('customization uses five retained radio colors and updated text, without ad
   }
   h.input('nook-name', 'Sunday table'); h.submit(); assert.equal(preview().color, 'yellow');
   h.click('Back / Edit'); assert.equal(preview().color, 'yellow'); h.submit(); h.click('Create Nook'); await flush();
-  assert.deepEqual(payload, { name: 'Sunday table', description: null });
+  assert.deepEqual(payload, { name: 'Sunday table', description: null, doorColor:'yellow' });
   h.click('Skip invitations'); assert.equal(preview().color, 'yellow');
   assert.equal(preview().opening, false);
 });

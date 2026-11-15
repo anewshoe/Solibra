@@ -32,7 +32,7 @@ export function AccountInformationForm({ user, mode = 'edit', onCancel }: { user
     } catch { return { error: 'We couldn’t update your account. Check your connection and sign-in, then try again. Your entries are still here.' }; }
   }, {});
   return <form data-mode={mode} className="account-form" action={action}>
-    <AccountAvatar name={name} email={user.email} />
+    <AccountAvatar name={name} email={user.email} avatarUrl={user.avatarUrl} />
     <label htmlFor="account-name">Display name</label><input id="account-name" name="name" required maxLength={100} value={name} disabled={pending} onChange={event => { setName(event.target.value); setDirty(true); }} autoComplete="name" aria-invalid={!!state.fields?.name} aria-describedby="account-name-help account-name-error" />
     <small id="account-name-help">{name.length} / 100 characters</small><p id="account-name-error" role={state.fields?.name ? 'alert' : undefined}>{state.fields?.name}</p>
     {mode === 'settings' ? <><label htmlFor="account-email">Email address</label><input id="account-email" name="email" type="email" required value={email} disabled={pending} onChange={event => { setEmail(event.target.value); setDirty(true); }} autoComplete="email" aria-invalid={!!state.fields?.email} aria-describedby="account-email-error" /><p id="account-email-error" role={state.fields?.email ? 'alert' : undefined}>{state.fields?.email}</p></> : <><input type="hidden" name="email" value={user.email} /><div><p className="sol-eyebrow">ACCOUNT EMAIL</p><p>{user.email}</p></div></>}
