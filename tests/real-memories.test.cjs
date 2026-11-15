@@ -68,7 +68,7 @@ test('photo validation and upload recovery preserve the saved artifact identity 
 
 function hookReact() {
  const slots=[];let cursor=0;const cleanups=[];
- return { reset(){cursor=0;}, unmount(){cleanups.forEach(fn=>fn?.());}, react:{...React,useState(initial){const i=cursor++;if(!(i in slots))slots[i]=initial;return[slots[i],value=>slots[i]=typeof value==='function'?value(slots[i]):value];},useRef(initial){const i=cursor++;if(!(i in slots))slots[i]={current:initial};return slots[i];},useEffect(effect){const i=cursor++;if(!(i in slots)){slots[i]=true;cleanups.push(effect());}}} };
+ return { reset(){cursor=0;}, unmount(){cleanups.forEach(fn=>fn?.());}, react:{...React,useCallback:fn=>fn,useState(initial){const i=cursor++;if(!(i in slots))slots[i]=initial;return[slots[i],value=>slots[i]=typeof value==='function'?value(slots[i]):value];},useRef(initial){const i=cursor++;if(!(i in slots))slots[i]={current:initial};return slots[i];},useEffect(effect){const i=cursor++;if(!(i in slots)){slots[i]=true;cleanups.push(effect());}}} };
 }
 function nodes(tree, predicate, found=[]) {
  if(!tree||typeof tree!=='object')return found;
@@ -124,20 +124,20 @@ test('real details show authorized text, private media paths, actual attribution
  const resources=detailResources({'/api/nooks/42/artifacts/7':{data:{artifact:{...artifact,type:'photo',mediaStorageKey:'PRIVATE_PHOTO_KEY'}}},'/api/nooks/42/artifacts/7/contributions':{data:{contributions:[contribution,audio,{...audio,id:11,audioStorageKey:null,originalTranscript:null,processingStatus:'draft'},{...contribution,id:999,artifactId:88,content:'WRONG ARTIFACT'}]}}});
  const Component=detailsLoader(resources)('@/components/solibra/real-memory-details').RealMemoryDetails;
  const html=renderToStaticMarkup(React.createElement(Component,{nookId:42,artifactId:7,viewerId:5}));
- for(const expected of ['A real afternoon','Real Writer','My perspective','Actual source transcript','Original transcript','/api/nooks/42/artifacts/7/media?v=','/contributions/10/media?v=','Recording unavailable','not available yet'])assert.ok(html.includes(expected),expected);
+ for(const expected of ['A real afternoon','Real Writer','My perspective','/api/nooks/42/artifacts/7/media?v=','/contributions/10/media?v=','Recording unavailable'])assert.ok(html.includes(expected),expected);
  for(const forbidden of ['PRIVATE_PHOTO_KEY','PRIVATE_STORAGE_KEY','PRIVATE@example','WRONG ARTIFACT','Sofía','Elena','/contributions/11/media'])assert.ok(!html.includes(forbidden),forbidden);
  assert.ok(!html.includes('Attach photograph')); // attached media cannot be replaced in this UI
 });
 
 test('details suppress cached private content on permission/read errors and reject cross-Nook artifact identity',()=>{
- const NookRequestError=loader()('@/lib/frontend/nook-api').NookRequestError;
+ const api=loader()('@/lib/frontend/nook-api');const {NookRequestError}=api;
  for(const path of ['/api/nooks/42','/api/nooks/42/artifacts/7','/api/nooks/42/members','/api/nooks/42/artifacts/7/contributions']){
   const resources=detailResources();resources[path]={...resources[path],error:new NookRequestError(404,'Access ended')};
-  const Component=detailsLoader(resources)('@/components/solibra/real-memory-details').RealMemoryDetails;
+  const Component=detailsLoader(resources,{'@/lib/frontend/nook-api':api})('@/components/solibra/real-memory-details').RealMemoryDetails;
   const html=renderToStaticMarkup(React.createElement(Component,{nookId:42,artifactId:7,viewerId:5}));assert.ok(!html.includes(artifact.title));assert.ok(!html.includes(contribution.content));assert.ok(!html.includes('<img'));
  }
  const resources=detailResources({'/api/nooks/42/artifacts/7':{data:{artifact:{...artifact,nookId:99}}}});
- const Component=detailsLoader(resources)('@/components/solibra/real-memory-details').RealMemoryDetails;
+ const Component=detailsLoader(resources,{'@/lib/frontend/nook-api':api})('@/components/solibra/real-memory-details').RealMemoryDetails;
  assert.ok(renderToStaticMarkup(React.createElement(Component,{nookId:42,artifactId:7,viewerId:5})).includes('could not be verified'));
 });
 
@@ -155,6 +155,8 @@ test('written perspectives require review, retain failures, and share uses same-
  const load=detailsLoader(resources,{react:h.react,swr:{useSWRConfig:()=>({mutate:async key=>mutations.push(key)})},'@/lib/frontend/real-memories':{...loader()('@/lib/frontend/real-memories'),createWrittenContribution:async(n,a,body)=>{writes++;assert.equal(n,42);assert.equal(a,7);assert.deepEqual(body,{type:'text',content:'New perspective'});if(fail)throw new Error('Unknown outcome');return{contribution:{...contribution,id:12,content:body.content}};}},'@/lib/frontend/real-messages':{sendNookMessage:async(n,body)=>{shared.push({n,body});return{message:{id:22,senderId:5}};}}});
  const Component=load('@/components/solibra/real-memory-details').RealMemoryDetails;const render=()=>{h.reset();return Component({nookId:42,artifactId:7,viewerId:5});};
  nodes(render(),node=>node.type==='button'&&node.props.children==='Add your perspective')[0].props.onClick();
+ assert.equal(nodes(render(),node=>node.type==='textarea').length,0);
+ nodes(render(),node=>node.type==='button'&&node.props.children==='Write a perspective')[0].props.onClick();
  input(render(),'textarea').props.onChange({target:{value:'New perspective'}});
  const submit=()=>input(render(),'form').props.onSubmit({preventDefault(){}});
  submit();assert.equal(writes,0);submit();await flush();assert.equal(writes,1);assert.equal(input(render(),'textarea').props.value,'New perspective');
@@ -199,4 +201,24 @@ test('local photo preview URLs are revoked on cleanup, never persisted as resour
   h.reset();Photo({file:photo,onChange(){}});h.reset();const tree=Photo({file:photo,onChange(){}});
   assert.equal(nodes(tree,node=>node.type==='img')[0].props.src,'blob:local-preview');h.unmount();assert.deepEqual(revoked,['blob:local-preview']);
  } finally {URL.createObjectURL=create;URL.revokeObjectURL=revoke;}
+});
+
+test('perspective choice keeps one visible editor, preserves text, resets resumed IDs for a new voice, and renders saved voices once',async()=>{
+ const h=hookReact();const resources=detailResources();const key='/api/nooks/42/artifacts/7/contributions';
+ resources[key].data.contributions=[{...contribution,id:9,type:'audio',content:null}];
+ for(const resource of Object.values(resources))resource.mutate=async value=>{if(value)resource.data=typeof value==='function'?value(resource.data):value;return resource.data;};
+ const Component=detailsLoader(resources,{react:h.react})('@/components/solibra/real-memory-details').RealMemoryDetails;
+ const render=()=>{h.reset();return Component({nookId:42,artifactId:7,viewerId:5});};
+ nodes(render(),n=>n.type==='button'&&n.props.children==='Add your perspective')[0].props.onClick();assert.equal(nodes(render(),n=>n.type==='textarea').length,0);
+ nodes(render(),n=>n.type==='button'&&n.props.children==='Write a perspective')[0].props.onClick();input(render(),'textarea').props.onChange({target:{value:'Keep my written draft'}});
+ nodes(render(),n=>n.type==='button'&&n.props.children==='Record a voice perspective')[0].props.onClick();assert.equal(nodes(render(),n=>n.type==='textarea').length,0);
+ nodes(render(),n=>n.type==='button'&&n.props.children==='Write a perspective')[0].props.onClick();assert.equal(input(render(),'textarea').props.value,'Keep my written draft');
+ nodes(render(),n=>n.type==='button'&&n.props.children==='Resume this voice draft')[0].props.onClick();let recorder=nodes(render(),n=>n.type?.name==='RealRecorder')[0];assert.equal(recorder.props.contributionId,9);recorder.props.onDraftChange(true,false);
+ const priorWindow=global.window;try{global.window={confirm:()=>false};nodes(render(),n=>n.type==='button'&&n.props.children==='Record a voice perspective')[0].props.onClick();assert.equal(nodes(render(),n=>n.type?.name==='RealRecorder')[0].props.contributionId,9);
+ global.window.confirm=()=>true;nodes(render(),n=>n.type==='button'&&n.props.children==='Record a voice perspective')[0].props.onClick();recorder=nodes(render(),n=>n.type?.name==='RealRecorder')[0];assert.equal(recorder.props.contributionId,undefined);
+ }finally{global.window=priorWindow;}
+ await recorder.props.onSaved({...contribution,id:12,type:'audio',content:null});assert.equal(nodes(render(),n=>n.type?.name==='RealRecorder').length,0);assert.equal(nodes(render(),n=>n.type?.name==='SavedVoice'&&n.props.contribution.id===12).length,1);h.unmount();
+ const actual={...contribution,id:10,type:'audio',audioStorageKey:'private-reference'};
+ const audioResources=detailResources({'/api/nooks/42/artifacts/7':{data:{artifact:{...artifact,type:'audio'}}},[key]:{data:{contributions:[actual]}}});
+ const Page=detailsLoader(audioResources)('@/components/solibra/real-memory-details').RealMemoryDetails;const html=renderToStaticMarkup(React.createElement(Page,{nookId:42,artifactId:7,viewerId:5}));assert.equal((html.match(/contributions\/10\/media\?v=/g)||[]).length,1);assert.ok(html.includes('Original recording'));
 });
