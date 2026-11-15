@@ -1,5 +1,6 @@
 'use client';
 
+import { sampleCircles } from '@/lib/fixtures/library';
 import { BrandLogo } from './brand-logo';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -63,7 +64,10 @@ export function SolibraShell({ children, signedOut = false }: { children: React.
   const publicHome = signedOut && pathname === '/';
   const inNook = pathname.startsWith('/circles/');
   const inMessages = pathname === '/messages' || pathname.startsWith('/messages/');
-  const inDemo = pathname.startsWith('/demo');
+  const demoCircle = sampleCircles.find(circle => pathname === `/circles/${circle.id}` || pathname.startsWith(`/circles/${circle.id}/`) || pathname === `/messages/${circle.id}`);
+  const inDemo = pathname.startsWith('/demo') || !!demoCircle;
+  const libraryHref = inDemo ? '/demo' : '/';
+  const messagesHref = inDemo ? `/messages/${demoCircle?.id ?? 'rivera-family'}` : '/messages';
   const [notice, setNotice] = useState<{ title: string; description: string } | null>(null);
   const showNotice = (title: string, description: string) => setNotice({ title, description });
   const notifications = () => router.push(account ? '/#invitations' : '/sign-in');
@@ -76,13 +80,13 @@ export function SolibraShell({ children, signedOut = false }: { children: React.
         <nav className="landing-navigation" aria-label="Main navigation"><Link href="/sign-in">Sign In</Link><Link className="sol-button" href="/sign-up">Create an Account</Link></nav>
       </div></header> : <header className={`sol-header ${inNook ? 'sol-header-nook' : ''} ${pathname.startsWith('/messages/') ? 'sol-header-conversation' : ''}`}>
         <div className="sol-header-inner">
-          <Link href="/" className="sol-logo" aria-label="Solibra Library"><BrandLogo /></Link>
+          <Link href={libraryHref} className="sol-logo" aria-label="Solibra Library"><BrandLogo /></Link>
           <nav aria-label="Main navigation" className="sol-desktop-nav">
-            <Link href="/" aria-current={(pathname === '/' || pathname === '/nooks/new' || inNook || inDemo) ? 'page' : undefined}><DesignIcon name="library" />Library</Link>
-            <Link href="/messages" aria-current={inMessages ? 'page' : undefined}><DesignIcon name="messages" />Messages</Link>
+            <Link href={libraryHref} aria-current={(pathname === '/' || pathname === '/nooks/new' || inNook || (inDemo && !inMessages)) ? 'page' : undefined}><DesignIcon name="library" />Library</Link>
+            <Link href={messagesHref} aria-current={inMessages ? 'page' : undefined}><DesignIcon name="messages" />Messages</Link>
           </nav>
           <div className="sol-header-actions">
-            <Link href={inNook ? `${pathname.split('/memories/')[0]}#memory-search` : '/?search=1#library-search'} className="sol-icon-button sol-header-search" aria-label={inNook ? 'Search this Nook' : 'Search Nooks'}><DesignIcon name="search" /></Link>
+            <Link href={inNook ? `${pathname.split('/memories/')[0]}#memory-search` : inDemo ? '/demo?search=1#library-search' : '/?search=1#library-search'} className="sol-icon-button sol-header-search" aria-label={inNook ? 'Search this Nook' : 'Search Nooks'}><DesignIcon name="search" /></Link>
             <button className="sol-icon-button" onClick={notifications} aria-label="Notifications"><DesignIcon name="bell" /></button>
             <div className="sol-desktop-account"><Suspense fallback={<span className="sol-account" />}><AccountMenu /></Suspense></div>
           </div>
@@ -91,8 +95,8 @@ export function SolibraShell({ children, signedOut = false }: { children: React.
       {children}
       <footer className="sol-footer"><p>A private place for the people who matter.</p><p>Your memories stay yours. Always.</p></footer>
       {!publicHome && <nav aria-label="Mobile navigation" className="sol-bottom-nav">
-        <Link href="/" aria-current={(pathname === '/' || pathname === '/nooks/new' || inNook || inDemo) ? 'page' : undefined}><DesignIcon name="library" />Library</Link>
-        <Link href="/messages" aria-current={inMessages ? 'page' : undefined}><DesignIcon name="messages" />Messages</Link>
+        <Link href={libraryHref} aria-current={(pathname === '/' || pathname === '/nooks/new' || inNook || (inDemo && !inMessages)) ? 'page' : undefined}><DesignIcon name="library" />Library</Link>
+        <Link href={messagesHref} aria-current={inMessages ? 'page' : undefined}><DesignIcon name="messages" />Messages</Link>
         <Link href={account ? "/profile" : "/sign-in"} aria-current={pathname === '/profile' || pathname.startsWith('/profile/') ? 'page' : undefined}><DesignIcon name="user" />You</Link>
       </nav>}
       <Dialog.Root open={!!notice} onOpenChange={(open) => { if (!open) setNotice(null); }}>

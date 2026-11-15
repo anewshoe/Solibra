@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { AUDIO_SIZE_LABEL, MAX_RECORDING_DURATION_MS } from '@/lib/voice/audio';
 import { LoadingStatus } from '../loading';
 import { SolibraEmote } from '../solibra-emote';
 import { useEffect, useRef, useState } from 'react';
@@ -100,7 +101,7 @@ export function RealRecorder({ nookId, viewerId, artifactId, contributionId, cre
   return <section className="real-memory-form real-recorder" aria-label="Record a saved voice">
     {mode === 'memory' && <ol className="voice-steps" aria-label="Voice memory progress">{['Record','Save','Transcribe & Translate','Done'].map((label,index) => <li key={label} aria-current={step === index ? 'step' : undefined}>{label}</li>)}</ol>}
     {!state.saved ? <><h3>Tell it in your own words.</h3><p>Any language. Your recording stays on this page until you save it.</p>
-      <div className="voice-recording-status">{recorder.status === 'recording' && <span className="recording-dot" aria-hidden="true"/>}<output aria-label="Recording duration">{formatDuration(recorder.elapsedMs)}</output><span>3 minutes / 4 MiB maximum</span></div>
+      <div className="voice-recording-status">{recorder.status === 'recording' && <span className="recording-dot" aria-hidden="true"/>}<output aria-label="Recording duration">{formatDuration(recorder.elapsedMs)}</output><span>{MAX_RECORDING_DURATION_MS / 60_000} minutes / {AUDIO_SIZE_LABEL} maximum</span></div>
       <div className="real-memory-actions">{recorder.status === 'recording' ? <button className="sol-button" type="button" onClick={recorder.stopRecording}><Square size={16}/>Stop recording</button> : <button className="sol-outline-button" type="button" disabled={capturing || !canChangeRecording} onClick={() => recorder.audioBlob ? discard(true) : void recorder.startRecording()}><Mic size={16}/>{recorder.status === 'requesting' ? 'Waiting for microphone…' : recorder.status === 'stopping' ? 'Finishing recording…' : recorder.audioBlob ? 'Re-record' : 'Record voice'}</button>}{recorder.audioBlob && canChangeRecording && <button className="sol-outline-button" type="button" onClick={() => discard(false)}>Discard</button>}</div>
       {recorder.audioUrl && <PrivateRecording src={recorder.audioUrl} label="Your local recording preview"/>}
       {recorder.error && <p role="alert">{recorder.error}</p>}{recorder.notice && <p role="status">{recorder.notice}</p>}

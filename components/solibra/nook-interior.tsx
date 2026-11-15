@@ -30,7 +30,7 @@ export function NookInterior({ circle }: { circle: SampleCircle }) {
 
   return (
     <main id="main-content" className="sol-main sol-nook-interior">
-      <nav aria-label="Breadcrumb" className="sol-breadcrumb"><Link href="/">Library</Link><span aria-hidden="true">/</span><span aria-current="page">{circle.title}</span></nav>
+      <nav aria-label="Breadcrumb" className="sol-breadcrumb"><Link href="/demo">Demo Library</Link><span aria-hidden="true">/</span><span aria-current="page">{circle.title}</span></nav>
       <div className="nook-introduction">
         <div><h1>{circle.title}</h1><NookDescription description={circle.description} /></div>
         <Button className="sol-button" onClick={() => notice('Add a memory', 'Memory uploads are coming in a later frontend pass. The memories shown here are sample data; this action does not upload or save anything.')}><Plus size={16} />Add memory</Button>

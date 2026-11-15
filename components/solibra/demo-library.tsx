@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { sampleCircles } from '@/lib/fixtures/library';
+import { BrandLogo } from './brand-logo';
+import { WindowSkeletons } from './loading';
 import { RecentAdditions } from './recent-additions';
 import { sampleRecentAdditions } from '@/lib/fixtures/recent-additions';
 import { NookWindow } from './nook-window';
@@ -52,14 +54,13 @@ export function DemoLibrary() {
   const notice = useNotice();
   return (
     <main id="main-content" className="sol-library"><p className="demo-label" role="note">Demo library · Fictional Nooks, people and memories. <Link href="/">Return to your Library</Link></p>
-      <img className="library-sunlight" src="/solibra/soft-sunlight.svg" width={579.755} height={589} alt="" aria-hidden="true" />
       <section className="library-welcome">
-        <p className="sol-eyebrow">YOUR SHARED MEMORY LIBRARY</p>
+        <BrandLogo/>
         <h1>A little library.<br />A lifetime together.</h1>
         <p>Good morning, Sofía. There’s a story waiting for you.</p>
-        <Button className="sol-button" asChild><Link href="/nooks/new"><Plus size={16} />Create Nook</Link></Button>
+        <Button className="sol-button" asChild><Link href="/nooks/new"><Plus size={16} />Create a real Nook</Link></Button>
       </section>
-      <Suspense fallback={<div className="library-wall" aria-busy="true">Opening your library…</div>}><LibraryCollection /></Suspense>
+      <Suspense fallback={<div className="library-wall"><WindowSkeletons/></div>}><LibraryCollection /></Suspense>
       <section className="library-invitation" aria-label="An invitation to share">
         <h2>Better with your people.</h2>
         <button onClick={() => notice('Invite your people', 'Sharing invitations are coming next. No invitation is sent from this sample library.')}>
