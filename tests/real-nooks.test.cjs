@@ -70,7 +70,7 @@ test('real interiors use authorized members and artifact metadata; only owner de
    '/api/nooks/42/artifacts':{data:{artifacts:[{id:71,nookId:42,title:'A written memory',description:'Kept together',type:'text',createdAt:'2026-01-01'}]}}
   })('@/components/solibra/real-nook').RealNook;
   const html=render(Real,{nookId:42,viewerId:5});
-  assert.ok(html.includes('Sunday table'));assert.ok(html.includes('Actual Member'));assert.ok(html.includes('1 member'));assert.ok(html.includes('A written memory'));
+  assert.ok(html.includes('Sunday table'));assert.ok(html.includes('Actual Member'));assert.ok(html.includes('1 member'));assert.ok(html.includes('A written memory'));assert.ok(html.includes('/circles/42/memories/71'));assert.ok(html.includes('/circles/42/memories/new'));
   assert.equal(html.includes('Edit description'),role==='owner');assert.ok(!html.includes('PRIVATE_EMAIL'));assert.ok(!html.includes('kitchen-memory'));assert.ok(!html.includes('Elena'));assert.ok(!html.includes('<img'));
  }
 });

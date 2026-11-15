@@ -1,0 +1,48 @@
+.real-memory-create { max-width: 920px; }
+.real-memory-create > h1 { font: 400 clamp(30px,5vw,46px)/1.25 var(--font-solibra-decorative),serif; margin-block: 24px 12px; }
+.real-memory-create > p { color: var(--sol-secondary); margin-bottom: 24px; }
+.real-memory-form { padding: clamp(16px,3vw,28px); border: 1px solid var(--sol-subtle); background: var(--sol-raised); border-radius: 20px; min-width: 0; }
+.real-memory-form > * + *, .real-memory-form form > * + * { margin-top: 16px; }
+.real-memory-form fieldset { min-width: 0; border: 0; padding: 0; margin: 0; }
+.real-memory-form legend { margin-bottom: 16px; font-weight: 600; }
+.real-memory-form label, .photo-selection label { display: grid; gap: 8px; font-size: 15px; }
+.real-memory-form fieldset > label { margin-top: 20px; }
+.real-memory-form input:not([type=radio]), .real-memory-form textarea { width: 100%; min-width: 0; border: 1px solid var(--sol-subtle); border-radius: 12px; background: var(--sol-inset); color: var(--sol-cream); font: inherit; font-size: 16px; padding: 12px; }
+.real-memory-form input[type=file] { padding: 10px; overflow: hidden; }
+.real-memory-form input::file-selector-button { background: var(--sol-action); color: var(--sol-on-light); border: 0; border-radius: 6px; padding: 8px; margin-right: 8px; cursor: pointer; }
+.real-memory-form textarea { resize: vertical; line-height: 1.6; min-height: 120px; }
+.real-memory-form input:focus-visible, .real-memory-form textarea:focus-visible { outline: 2px solid var(--sol-action); outline-offset: 3px; }
+.real-memory-form small, .real-memory-help { display: block; color: var(--sol-secondary); font-size: 13px; line-height: 1.6; }
+.real-memory-form small { margin-top: 6px; }
+.real-memory-form button:disabled, .real-memory-form fieldset:disabled { opacity: .65; }
+.memory-type-options { display: flex; flex-wrap: wrap; gap: 10px; }
+.memory-type-options label { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 10px 14px; border: 1px solid var(--sol-subtle); border-radius: 12px; }
+.memory-type-options label:has(input:checked) { background: var(--sol-inset); border-color: var(--sol-action); }
+.memory-type-options input { accent-color: var(--sol-action); }
+.real-memory-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.real-memory-actions > * { min-height: 44px; }
+.memory-save-feedback { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.memory-save-feedback p { flex: 1; min-width: min(100%, 160px); }
+.memory-story-empty { display: grid; gap: 16px; justify-items: start; }
+.photo-selection > * + * { margin-top: 12px; }
+.local-photo-preview { width: 100%; max-height: 320px; object-fit: contain; border-radius: 12px; background: var(--sol-inset); }
+.real-artifact { display: flex; flex-direction: column; transition: box-shadow .2s; }
+.real-artifact:hover { box-shadow: 0 4px 16px #32131c44; }
+.real-artifact-thumbnail { width: 100%; height: 170px; object-fit: cover; border-radius: 8px; }
+.real-artifact-excerpt { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.real-artifact > span:last-child { margin-top: auto; padding-top: 16px; }
+.real-memory-details { overflow-wrap: anywhere; }
+.real-memory-details .memory-original > * + * { margin-top: 24px; }
+.real-memory-details .memory-original h2 { font: 400 28px/1.3 var(--font-solibra-decorative),serif; }
+.real-memory-details .memory-long-story, .real-perspective > p, .real-transcript { white-space: pre-wrap; line-height: 1.8; }
+.real-memory-details .memory-original-photo { object-fit: contain; max-height: 680px; height: auto; width: 100%; background: var(--sol-inset); }
+.real-memory-details audio { width: 100%; margin-block: 16px; }
+.real-media-placeholder { display: grid; place-items: center; min-height: 180px; padding: 24px; background: var(--sol-inset); border-radius: 16px; text-align: center; }
+.real-perspective { padding-block: 20px; border-bottom: 1px solid var(--sol-subtle); }
+.real-perspective > * + * { margin-top: 12px; }
+.real-perspective time { display: block; color: var(--sol-secondary); font-size: 13px; }
+.real-memory-details .family-perspectives { gap: 20px; }
+.real-voices { min-width: 0; }
+.real-message-artifact a { text-decoration: underline; text-underline-offset: 3px; }
+@media(max-width: 359px) { .real-memory-form { padding: 14px; } .memory-type-options { flex-direction: column; } .real-memory-actions { align-items: stretch; flex-direction: column; } }
+@media(prefers-reduced-motion: reduce) { .real-artifact { transition: none; } }
