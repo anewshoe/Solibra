@@ -14,6 +14,7 @@ import { MemberProfileCard } from './member-profile';
 import { Bookshelf } from './bookshelf';
 import { InvitationQueueFields, useInvitationQueue } from './invitation-queue';
 import { DesignIcon } from './shell';
+import { BookSkeletons, LoadingStatus, PageSkeleton } from './loading';
 import { MemoryBook } from './memory-book';
 import { SolibraEmote } from './solibra-emote';
 
@@ -35,7 +36,7 @@ export function RealNook({ nookId, viewerId }: { nookId:number; viewerId:number 
   const accessError=[members.error,artifacts.error].find(error=>error instanceof NookRequestError && [401,403,404].includes(error.status));
   if(accessError)return <main id="main-content" className="sol-main"><Link href="/">← Library</Link><NookRequestState error={accessError} retry={()=>void Promise.all([detail.mutate(),members.mutate(),artifacts.mutate()]).catch(()=>{})}/></main>;
   if(detail.error)return <main id="main-content" className="sol-main"><Link href="/">← Library</Link><NookRequestState error={detail.error} retry={()=>void detail.mutate()}/></main>;
-  if(!detail.data)return <main id="main-content" className="sol-main" aria-busy="true"><p role="status">Opening your Nook…</p></main>;
+  if(!detail.data)return <main id="main-content" className="sol-main" aria-busy="true"><PageSkeleton kind="nook" label="Opening your Nook…"/></main>;
   const nook=detail.data.nook;
   if(nook.id !== nookId) return <main id="main-content" className="sol-main"><p role="alert">This Nook response could not be verified. Return to Library and try again.</p></main>;
   const actualMembers=members.data?.members.filter(member=>member.nookId===nookId) || [];
@@ -53,6 +54,6 @@ export function RealNook({ nookId, viewerId }: { nookId:number; viewerId:number 
     {members.data&&!members.error&&<details className="real-member-details"><summary>View Nook member profiles</summary>{actualMembers.map(member=><MemberProfileCard key={member.id} membership={member} nookName={nook.name}/>)}</details>}
     {inviteOpen&&nook.role==='owner'&&<OwnerInvitations key={nookId} nookId={nookId} viewerId={viewerId}/>}
     <div className="memory-toolbar"><label className="sol-search"><DesignIcon name="search"/><span className="sr-only">Search this Nook</span><input id="memory-search" type="search" value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search this Nook…"/></label><div className="memory-filters" role="group" aria-label="Filter memories by type">{(['all','photo','audio','letter','text','other'] as const).map(type=><button key={type} aria-pressed={category===type} onClick={()=>setCategory(type)}>{type==='all'?'All memories':type[0].toUpperCase()+type.slice(1)}</button>)}</div><label><span className="sr-only">Sort memories</span><select value={newest?'newest':'oldest'} onChange={event=>setNewest(event.target.value==='newest')}><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label></div>
-    <Bookshelf nookName={nook.name}>{artifacts.error?<NookRequestState error={artifacts.error} retry={()=>void artifacts.mutate()}/>:!artifacts.data?<p role="status">Loading memories…</p>:shown.length?<div className="real-book-grid">{shown.map(item=><MemoryBook key={item.id} artifact={item}/>)}</div>:<div className="real-empty-shelf">{query||category!=='all'?<p>No memories match this search or filter.</p>:<><SolibraEmote variant="reading" size={88}/><p>Your shelf is ready for the memories you’ll collect together.</p></>}</div>}</Bookshelf>
+    <div aria-busy={!artifacts.data && !artifacts.error}><Bookshelf nookName={nook.name}>{artifacts.error?<NookRequestState error={artifacts.error} retry={()=>void artifacts.mutate()}/>:!artifacts.data?<><LoadingStatus>Finding a place for your memories…</LoadingStatus><BookSkeletons/></>:shown.length?<div className="real-book-grid">{shown.map(item=><MemoryBook key={item.id} artifact={item}/>)}</div>:<div className="real-empty-shelf">{query||category!=='all'?<p>No memories match this search or filter.</p>:<><SolibraEmote variant="reading" size={88}/><p>Your shelf is ready for the memories you’ll collect together.</p></>}</div>}</Bookshelf></div>
   </main>;
 }

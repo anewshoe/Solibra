@@ -115,7 +115,7 @@ test('customization uses five retained radio colors and sends the chosen color t
   let payload;
   const h = harness({ createNook: async data => { payload = data; return { nook }; } });
   assert.ok(h.has('Customize your Nook'));
-  assert.equal(h.tree().find(el => el.props?.id === 'nook-name').props.placeholder, 'The Goyettes');
+  assert.equal(h.tree().find(el => el.props?.id === 'nook-name').props.placeholder, 'Insert a family or friend group name!');
   assert.equal(h.tree().find(el => el.props?.id === 'nook-description').props.placeholder, 'What kind of memories do you want to collect?');
   const preview = () => h.tree().find(el => el.type?.name === 'NookPreview').props;
   assert.equal(preview().color, 'pink');
