@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { PageSkeleton, LoadingStatus } from './loading';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { useSWRConfig } from 'swr';
@@ -35,10 +36,10 @@ export function CreateMemory({ nookId, viewerId }: { nookId: number; viewerId: n
     await Promise.all([mutate([artifactPath(nookId), viewerId]), saved ? mutate([artifactPath(nookId, saved.id), viewerId]) : Promise.resolve()]).catch(() => {});
   }
   async function upload(artifact: Artifact) {
-    setStage('Attaching your photograph…');
+    setStage('Uploading your photograph…');
     const result = await attachSavedPhoto(nookId, artifact.id, file!);
     setPhotoAttached(!result.alreadyAttached);
-    setNotice(result.alreadyAttached ? 'A photograph is already attached. Open the memory to verify it.' : result.cleanupPending ? 'Photograph attached. Background storage cleanup is pending; no retry is needed.' : 'Photograph attached. Your memory is ready.');
+    setNotice(result.alreadyAttached ? 'A photograph is already attached. Open the memory to verify it.' : result.cleanupPending ? 'Photograph attached. Background storage cleanup is pending; no retry is needed.' : 'Your memory is saved!');
     await Promise.all([mutate([artifactPath(nookId), viewerId]), mutate([artifactPath(nookId, artifact.id), viewerId])]).catch(() => {});
     router.push(realMemoryHref(nookId, artifact.id));
   }
@@ -55,12 +56,12 @@ export function CreateMemory({ nookId, viewerId }: { nookId: number; viewerId: n
       setSaved(artifact); setNotice('Memory created.');
       await mutate([artifactPath(nookId), viewerId]).catch(() => {});
       if (type === 'photo') await upload(artifact);
-      else { setStage(''); setNotice('Your memory is saved and ready to open.'); }
+      else { setStage(''); setNotice('Your memory is saved!'); }
     });
   }
   const error = nook.error || write.accessError;
   if (error) return <main id="main-content" className="sol-main"><Link href="/">← Library</Link><NookRequestState error={error} retry={() => { write.clearError(); void nook.mutate(); }}/></main>;
-  if (!nook.data) return <main id="main-content" className="sol-main"><p role="status">Opening your Nook…</p></main>;
+  if (!nook.data) return <main id="main-content" className="sol-main"><PageSkeleton kind="nook" label="Opening your Nook…"/></main>;
   if (nook.data.nook.id !== nookId) return <main id="main-content" className="sol-main"><p role="alert">This Nook could not be verified.</p></main>;
   return <main id="main-content" className="sol-main real-memory-create">
     <nav className="sol-breadcrumb" aria-label="Breadcrumb"><Link href="/">Library</Link><span>/</span><Link href={`/circles/${nookId}`}>{nook.data.nook.name}</Link><span>/ Add memory</span></nav>
@@ -72,7 +73,7 @@ export function CreateMemory({ nookId, viewerId }: { nookId: number; viewerId: n
       </fieldset>
       {type === 'photo' && <PhotoSelection file={file} onChange={setFile} disabled={write.pending || !!saved && !write.error}/>}
       {validation && <p role="alert">{validation}</p>}
-      {write.pending && <p role="status">{stage}</p>}
+      {write.pending && <div aria-busy="true"><LoadingStatus>{stage}</LoadingStatus></div>}
       {notice && <div className="memory-save-feedback">{saved && !write.pending && !write.error && (type === 'text' || type === 'letter' || type === 'photo' && photoAttached) && <SolibraEmote variant="celebrate" size={72}/>}<p role="status">{notice}</p></div>}
       {write.error && <div role="alert"><p>{saved ? 'Your memory was created, but its photograph was not confirmed as attached. Retry below for this same memory, or open it to check.' : write.error.message}</p>{saved && <p>{write.error.message}</p>}<Link href={`/circles/${nookId}`} onClick={() => void refresh()}>Check your Nook before retrying →</Link></div>}
       <div className="real-memory-actions">{type === 'audio' ? null : !saved ? <><button className="sol-button" disabled={write.pending} type="submit">{write.pending ? 'Saving…' : 'Create memory'}</button><Link className="sol-outline-button" href={`/circles/${nookId}`}>Cancel</Link></> : <><Link className="sol-button" href={realMemoryHref(nookId, saved.id)}>View memory →</Link>{type === 'photo' && write.error && <button className="sol-outline-button" type="button" disabled={write.pending || !file} onClick={() => void write.run(() => upload(saved), () => {})}>Retry photograph upload</button>}</>}</div>

@@ -128,3 +128,11 @@ test('description errors retain drafts, and permission loss removes owner editin
  assert.ok(h.tree().some(el=>el.props?.role==='alert'&&String(el.props.children).includes('draft is still here')));
  props.editor.nook.role='member';assert.ok(!h.tree().some(el=>el.type==='textarea'));assert.ok(h.tree().some(el=>el.props?.role==='alert'));
 });
+
+test('bookshelf distinguishes initial loading, cached revalidation, empty and denied states',()=>{
+ const api=loader()('@/lib/frontend/nook-api');
+ for(const [resource,expected]of [[{},'sol-skeleton'],[{data:{artifacts:[]}},'Your shelf is ready'],[{data:{artifacts:[{id:71,nookId:42,title:'Real words',type:'text',createdAt:'2026-01-01'}]},isValidating:true},'Real words'],[{data:{artifacts:[{title:'PRIVATE STALE'}]},error:new api.NookRequestError(403,'Access ended')},'Access ended']]) {
+  const Real=dataLoader({'/api/nooks/42':{data:{nook:first}},'/api/nooks/42/members':{data:{members:[]}},'/api/nooks/42/artifacts':resource},{'@/lib/frontend/nook-api':api})('@/components/solibra/real-nook').RealNook;
+  const html=render(Real,{nookId:42,viewerId:5});assert.ok(html.includes(expected));assert.ok(!html.includes('PRIVATE STALE'));if(resource.data)assert.ok(!html.includes('memory-book sol-skeleton'));
+ }
+});

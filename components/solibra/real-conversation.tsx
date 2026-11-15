@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { PageSkeleton } from './loading';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, RefreshCw, Send, Users } from 'lucide-react';
 import type { NookResponse,NookListResponse,NookMembershipListResponse } from '@/lib/nooks/types';
@@ -41,7 +42,7 @@ export function RealConversation({nookId,viewerId}:{nookId:number;viewerId:numbe
     lastCount.current=messages.length;
   },[messages.length]);
   useEffect(()=>{if(sendAccessError){void Promise.all([detail.mutate(),members.mutate(),history.mutate()]).catch(()=>{});}},[sendAccessError]);
-  if(blocked || !verified || !members.data || !history.data) return <main id="main-content" className="messages-page messages-route-state" ref={main}><Link className="sol-outline-button" href="/messages">← All conversations</Link>{blocked?<NookRequestState error={blocked} retry={()=>{void Promise.all([detail.mutate(),members.mutate(),history.mutate()]).then(()=>composer.clearError()).catch(()=>{});}}/>:detail.data&&!verified?<p role="alert">This Nook could not be verified.</p>:<p role="status">Opening your group conversation…</p>}{composer.draft && <p>Your unsent draft is kept in this tab.</p>}{sendAccessError?.status===401&&<Link href="/sign-in" target="_blank" rel="noopener noreferrer">Sign in in another tab, then refresh here</Link>}</main>;
+  if(blocked || !verified || !members.data || !history.data) return <main id="main-content" className="messages-page messages-route-state" ref={main}><Link className="sol-outline-button" href="/messages">← All conversations</Link>{blocked?<NookRequestState error={blocked} retry={()=>{void Promise.all([detail.mutate(),members.mutate(),history.mutate()]).then(()=>composer.clearError()).catch(()=>{});}}/>:detail.data&&!verified?<p role="alert">This Nook could not be verified.</p>:<PageSkeleton kind="conversation" label="Opening your group conversation…"/>}{composer.draft && <p>Your unsent draft is kept in this tab.</p>}{sendAccessError?.status===401&&<Link href="/sign-in" target="_blank" rel="noopener noreferrer">Sign in in another tab, then refresh here</Link>}</main>;
   const nook=detail.data!.nook;
   const people=members.data.members.filter(member=>member.nookId===nookId);
   const choices=artifacts.error?[]:(artifacts.data?.artifacts||[]).filter(item=>item.nookId===nookId);

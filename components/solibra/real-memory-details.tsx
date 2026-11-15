@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { PageSkeleton } from './loading';
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, MessagesSquare, RefreshCw, Sparkles } from 'lucide-react';
 import { useSWRConfig } from 'swr';
@@ -58,7 +59,7 @@ export function RealMemoryDetails({ nookId, artifactId, viewerId }: { nookId: nu
     perspectiveWrite.clearError(); sharing.clearError(); photoWrite.clearError();
     await Promise.all([nook.mutate(), memory.mutate(), people.mutate(), perspectives.mutate()]).catch(() => {});
   }
-  if (error || !validMemory || !people.data || !perspectives.data) return <main id="main-content" className="sol-main"><Link href={`/circles/${nookId}`}>← Back to Nook</Link>{error ? <NookRequestState error={error} retry={() => void refresh()}/> : nook.data && !verified || memory.data && verified && !validMemory ? <p role="alert">This memory could not be verified.</p> : <p role="status">Opening your memory…</p>}{draft && <p>Your unsent perspective is kept while this page stays open.</p>}</main>;
+  if (error || !validMemory || !people.data || !perspectives.data) return <main id="main-content" className="sol-main"><Link href={`/circles/${nookId}`}>← Back to Nook</Link>{error ? <NookRequestState error={error} retry={() => void refresh()}/> : nook.data && !verified || memory.data && verified && !validMemory ? <p role="alert">This memory could not be verified.</p> : <PageSkeleton kind="memory" label="Opening your memory…"/>}{draft && <p>Your unsent perspective is kept while this page stays open.</p>}</main>;
   const artifact = memory.data!.artifact;
   const members = people.data.members.filter(member => member.nookId === nookId);
   const contributions = perspectives.data.contributions.filter(item => item.artifactId === artifactId).sort((a,b) => Date.parse(a.createdAt) - Date.parse(b.createdAt) || a.id - b.id);
