@@ -1,0 +1,12 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="579.755" height="589" viewBox="0 0 579.755 589" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Soft sunlight across the cream wall" opacity="0.035" filter="url(#filter0_f_0_284)">
+<path d="M24.8775 24.5H234.877L554.877 564.5H344.877L24.8775 24.5Z" fill="#FFB01F" stroke="#FFB01F"/>
+</g>
+<defs>
+<filter id="filter0_f_0_284" x="1.78814e-07" y="0" width="579.755" height="589" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="12" result="effect1_foregroundBlur_0_284"/>
+</filter>
+</defs>
+</svg>
