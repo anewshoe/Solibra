@@ -12,6 +12,7 @@ import { useConversationViewport } from './use-conversation-viewport';
 import { useMessageComposer } from './use-message-composer';
 import { NookRequestState } from './nook-request-state';
 import { NookWindow } from './nook-window';
+import { SolibraEmote } from './solibra-emote';
 
 export function RealConversation({nookId,viewerId}:{nookId:number;viewerId:number}) {
   const main=useRef<HTMLElement>(null);const scroll=useRef<HTMLDivElement>(null);const nearBottom=useRef(true);const lastCount=useRef<number|null>(null);
@@ -47,7 +48,7 @@ export function RealConversation({nookId,viewerId}:{nookId:number;viewerId:numbe
       <section className="conversation-panel" aria-label={`Group conversation in ${nook.name}`}>
         <header className="conversation-heading"><Link className="sol-icon-button conversation-back" href="/messages" aria-label="Back to conversations"><ArrowLeft size={20}/></Link><span className="real-conversation-symbol" aria-hidden="true"><Users size={22}/></span><div><h2>{nook.name}</h2><p>{memberCountLabel(people.length)} · Group conversation</p></div><button className="sol-icon-button" aria-label="Refresh conversation" disabled={history.isValidating||composer.pending} onClick={()=>{void Promise.all([detail.mutate(),members.mutate(),history.mutate(),...(needsArtifacts?[artifacts.mutate()]:[])]).catch(()=>{});}}><RefreshCw size={20}/></button><Link className="real-open-nook" href={`/circles/${nookId}`}>View Nook</Link></header>
         <div className="thread-scroll" ref={scroll} role="log" aria-label="Group messages" onScroll={()=>{if(scroll.current)nearBottom.current=scroll.current.scrollHeight-scroll.current.scrollTop-scroll.current.clientHeight<80;}}>
-          {!messages.length?<div className="conversation-empty"><h3>A little hello goes a long way.</h3><p>This shared conversation is ready for your first message.</p></div>:messages.map(message=>{
+          {!messages.length?<div className="conversation-empty"><SolibraEmote variant="wave" size={88}/><h3>A little hello goes a long way.</h3><p>This shared conversation is ready for your first message.</p></div>:messages.map(message=>{
             const outgoing=message.senderId===viewerId;
             const artifact=message.artifactId===null||artifacts.error?null:artifacts.data?.artifacts.find(item=>item.id===message.artifactId&&item.nookId===nookId);
             return <article className={`conversation-message message-text ${outgoing?'message-outgoing':'message-incoming'}`} key={message.id} data-message-id={message.id}><div className="message-bubble"><p>{message.content}</p><small>{senderName(message,viewerId,people)} · <time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'})}</time></small>{message.artifactId!==null&&<p className="real-message-artifact">Memory: {artifact?<Link href={realMemoryHref(nookId,artifact.id)}>{artifact.title} →</Link>:'Memory reference unavailable'}</p>}</div></article>;

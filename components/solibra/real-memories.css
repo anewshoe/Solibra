@@ -21,6 +21,9 @@
 .memory-type-options input { accent-color: var(--sol-action); }
 .real-memory-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .real-memory-actions > * { min-height: 44px; }
+.memory-save-feedback { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.memory-save-feedback p { flex: 1; min-width: min(100%, 160px); }
+.memory-story-empty { display: grid; gap: 16px; justify-items: start; }
 .photo-selection > * + * { margin-top: 12px; }
 .local-photo-preview { width: 100%; max-height: 320px; object-fit: contain; border-radius: 12px; background: var(--sol-inset); }
 .real-artifact { display: flex; flex-direction: column; transition: box-shadow .2s; }

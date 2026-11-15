@@ -11,6 +11,7 @@ import { useConfirmedWrite } from './use-confirmed-write';
 import { NookRequestState } from './nook-request-state';
 import { PhotoSelection, PrivatePhoto } from './photo-attachment';
 import { PrivateRecording } from './private-recording';
+import { SolibraEmote } from './solibra-emote';
 
 export function RealMemoryDetails({ nookId, artifactId, viewerId }: { nookId: number; artifactId: number; viewerId: number }) {
   const nook = useNookData<NookResponse>(`/api/nooks/${nookId}`, viewerId);
@@ -77,7 +78,7 @@ export function RealMemoryDetails({ nookId, artifactId, viewerId }: { nookId: nu
       <section className="memory-original" aria-label="The original memory">
         {artifact.type === 'photo' && (artifact.mediaStorageKey ? <figure><PrivatePhoto key={artifact.updatedAt} src={`${artifactMediaPath(artifact)}?v=${encodeURIComponent(artifact.updatedAt)}`} title={artifact.title}/><figcaption>{artifact.title}</figcaption></figure> : <div className="real-media-placeholder"><p>No photograph is attached yet.</p></div>)}
         {artifact.type === 'audio' && (artifact.mediaStorageKey ? <PrivateRecording key={artifact.updatedAt} src={`${artifactMediaPath(artifact)}?v=${encodeURIComponent(artifact.updatedAt)}`} label={`Original recording: ${artifact.title}`}/> : <p>No recording is attached to this memory.</p>)}
-        <h2>{artifact.type === 'letter' ? 'A letter, kept close.' : 'The story behind it.'}</h2><p className="memory-long-story">{artifact.description || 'This memory is waiting for its story.'}</p>
+        <h2>{artifact.type === 'letter' ? 'A letter, kept close.' : 'The story behind it.'}</h2>{artifact.description ? <p className="memory-long-story">{artifact.description}</p> : <div className="memory-story-empty"><SolibraEmote variant="reading" size={80}/><p className="memory-long-story">This memory is waiting for its story.</p></div>}
         {canAttachPhoto && <section className="real-memory-form" aria-label="Attach missing photograph"><h3>Add its photograph</h3><PhotoSelection file={file} onChange={setFile} disabled={photoWrite.pending}/><button className="sol-outline-button" disabled={photoWrite.pending || !file} onClick={() => void attach()}>{photoWrite.pending ? 'Attaching photograph…' : photoWrite.error ? 'Retry photograph upload' : 'Attach photograph'}</button>{photoWrite.error && <p role="alert">{photoWrite.error.message} The memory is still saved. Retry uses this same memory.</p>}</section>}
         {photoNotice && <p role="status">{photoNotice}</p>}
         <section className="family-perspectives" aria-labelledby="real-perspectives-title"><h2 id="real-perspectives-title">One memory. Many points of view.</h2>

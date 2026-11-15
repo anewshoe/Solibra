@@ -91,10 +91,10 @@ test('create form retains confirmed artifact after failed upload; retries upload
  nodes(tree,node=>node.type?.name==='PhotoSelection')[0].props.onChange(photo);
  tree=h.render(); const submit=()=>input(h.render(),'form').props.onSubmit({preventDefault(){}});
  submit();submit();assert.equal(creates,1);release();await flush();
- tree=h.render();assert.equal(uploads,1);assert.equal(h.visits.length,0);
+ tree=h.render();assert.equal(uploads,1);assert.equal(h.visits.length,0);assert.equal(nodes(tree,node=>node.type?.name==='SolibraEmote'&&node.props.variant==='celebrate').length,0);
  assert.ok(nodes(tree,node=>node.type==='a'||node.props?.href).some(node=>node.props.href==='/circles/42/memories/7'));
  fail=false;nodes(tree,node=>node.type==='button'&&node.props.children==='Retry photograph upload')[0].props.onClick();await flush();
- assert.equal(creates,1);assert.equal(uploads,2);assert.deepEqual(h.visits,['/circles/42/memories/7']);assert.ok(h.mutations.every(key=>key[1]===5));h.unmount();
+ assert.equal(creates,1);assert.equal(uploads,2);assert.deepEqual(h.visits,['/circles/42/memories/7']);assert.equal(nodes(h.render(),node=>node.type?.name==='SolibraEmote'&&node.props.variant==='celebrate').length,1);assert.ok(h.mutations.every(key=>key[1]===5));h.unmount();
 });
 
 test('text and letter creation validate bodies, preserve failed drafts and show only confirmed success',async()=>{
@@ -107,8 +107,8 @@ test('text and letter creation validate bodies, preserve failed drafts and show 
   const submit=()=>input(h.render(),'form').props.onSubmit({preventDefault(){}});
   submit();await flush();assert.equal(calls,0);
   input(h.render(),'textarea').props.onChange({target:{value:'Our written recollection'}});submit();await flush();
-  assert.equal(calls,1);assert.equal(input(h.render(),'textarea').props.value,'Our written recollection');
-  fail=false;submit();await flush();assert.equal(calls,2);assert.ok(nodes(h.render(),node=>node.props?.href==='/circles/42/memories/7').length);h.unmount();
+  assert.equal(calls,1);assert.equal(input(h.render(),'textarea').props.value,'Our written recollection');assert.equal(nodes(h.render(),node=>node.type?.name==='SolibraEmote'&&node.props.variant==='celebrate').length,0);
+  fail=false;submit();await flush();assert.equal(calls,2);assert.ok(nodes(h.render(),node=>node.props?.href==='/circles/42/memories/7').length);assert.equal(nodes(h.render(),node=>node.type?.name==='SolibraEmote'&&node.props.variant==='celebrate').length,1);h.unmount();
  }
 });
 

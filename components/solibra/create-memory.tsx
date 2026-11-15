@@ -10,6 +10,7 @@ import { useNookData } from './use-nook-data';
 import { NookRequestState } from './nook-request-state';
 import { PhotoSelection } from './photo-attachment';
 import { useConfirmedWrite } from './use-confirmed-write';
+import { SolibraEmote } from './solibra-emote';
 
 export function CreateMemory({ nookId, viewerId }: { nookId: number; viewerId: number }) {
   const nook = useNookData<NookResponse>(`/api/nooks/${nookId}`, viewerId);
@@ -24,12 +25,14 @@ export function CreateMemory({ nookId, viewerId }: { nookId: number; viewerId: n
   const [validation, setValidation] = useState('');
   const [notice, setNotice] = useState('');
   const [stage, setStage] = useState('');
+  const [photoAttached, setPhotoAttached] = useState(false);
   async function refresh() {
     await Promise.all([mutate([artifactPath(nookId), viewerId]), saved ? mutate([artifactPath(nookId, saved.id), viewerId]) : Promise.resolve()]).catch(() => {});
   }
   async function upload(artifact: Artifact) {
     setStage('Attaching your photograph…');
     const result = await attachSavedPhoto(nookId, artifact.id, file!);
+    setPhotoAttached(!result.alreadyAttached);
     setNotice(result.alreadyAttached ? 'A photograph is already attached. Open the memory to verify it.' : result.cleanupPending ? 'Photograph attached. Background storage cleanup is pending; no retry is needed.' : 'Photograph attached. Your memory is ready.');
     await Promise.all([mutate([artifactPath(nookId), viewerId]), mutate([artifactPath(nookId, artifact.id), viewerId])]).catch(() => {});
     router.push(realMemoryHref(nookId, artifact.id));
@@ -65,7 +68,7 @@ export function CreateMemory({ nookId, viewerId }: { nookId: number; viewerId: n
       {type === 'photo' && <PhotoSelection file={file} onChange={setFile} disabled={write.pending || !!saved && !write.error}/>}
       {validation && <p role="alert">{validation}</p>}
       {write.pending && <p role="status">{stage}</p>}
-      {notice && <p role="status">{notice}</p>}
+      {notice && <div className="memory-save-feedback">{saved && !write.pending && !write.error && (type !== 'photo' || photoAttached) && <SolibraEmote variant="celebrate" size={72}/>}<p role="status">{notice}</p></div>}
       {write.error && <div role="alert"><p>{saved ? 'Your memory was created, but its photograph was not confirmed as attached. Retry below for this same memory, or open it to check.' : write.error.message}</p>{saved && <p>{write.error.message}</p>}<Link href={`/circles/${nookId}`} onClick={() => void refresh()}>Check your Nook before retrying →</Link></div>}
       <div className="real-memory-actions">{!saved ? <><button className="sol-button" disabled={write.pending} type="submit">{write.pending ? 'Saving…' : 'Create memory'}</button><Link className="sol-outline-button" href={`/circles/${nookId}`}>Cancel</Link></> : <><Link className="sol-button" href={realMemoryHref(nookId, saved.id)}>View memory →</Link>{type === 'photo' && write.error && <button className="sol-outline-button" type="button" disabled={write.pending || !file} onClick={() => void write.run(() => upload(saved), () => {})}>Retry photograph upload</button>}</>}</div>
     </form>
