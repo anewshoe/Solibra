@@ -73,7 +73,7 @@ test('failed or unknown sends retain drafts and never retry automatically; histo
  const api=loader()('@/lib/frontend/real-messages');let calls=0;
  const h=composerHarness(async()=>{calls++;throw new api.MessageSendError(0,'Unknown result',true);});
  h.render().setDraft('Retain me');await h.render().send();assert.equal(h.render().draft,'Retain me');assert.equal(calls,1);assert.ok(h.render().error.uncertain);
- h.render().setDraft(' '.repeat(4));await h.render().send();assert.equal(calls,1);assert.equal(h.render().error.status,400);h.unmount();
+ await h.render().send();assert.equal(calls,1);assert.equal(h.render().needsRefresh,true);h.render().confirmRetryAfterInspection();h.render().setDraft(' '.repeat(4));await h.render().send();assert.equal(calls,1);assert.equal(h.render().error.status,400);h.unmount();
  const saved=composerHarness(async()=>({message:{...message,senderId:5}}),async()=>{throw new Error('Offline');});saved.render().setDraft('Saved');await saved.render().send();assert.equal(saved.render().draft,'');assert.match(saved.render().notice,/don’t resend/);saved.unmount();
 });
 
@@ -131,4 +131,27 @@ test('late send completion after unmount cannot update another conversation or a
  let resolve;let updates=0;
  const h=composerHarness(()=>new Promise(done=>resolve=done),async()=>updates++);
  h.render().setDraft('Private draft');const send=h.render().send();h.unmount();resolve({message:{...message,senderId:5}});await send;assert.equal(updates,0);
+});
+
+test('memory requests preserve the actual artifact reference and avoid duplicate writes on pending or unknown sends',async()=>{
+ let release,calls=0;const sent=[];
+ const h=composerHarness(async(n,input)=>{calls++;sent.push({n,input});return new Promise(resolve=>release=resolve);});
+ h.render().setDraft('Does anyone remember this afternoon?');h.render().setLinkedArtifactId(7);
+ const first=h.render().send();await h.render().send();assert.equal(calls,1);assert.deepEqual(sent[0],{n:42,input:{content:'Does anyone remember this afternoon?',artifactId:7}});
+ release({message:{...message,senderId:5,artifactId:7}});await first;assert.equal(h.render().linkedArtifactId,null);assert.equal(h.render().draft,'');h.unmount();
+ const api=loader()('@/lib/frontend/real-messages');let attempts=0;const unknown=composerHarness(async()=>{attempts++;throw new api.MessageSendError(0,'Unknown',true);});
+ unknown.render().setDraft('I added my voice to this memory.');unknown.render().setLinkedArtifactId(7);await unknown.render().send();await unknown.render().send();assert.equal(attempts,1);assert.equal(unknown.render().linkedArtifactId,7);assert.equal(unknown.render().needsRefresh,true);unknown.render().clearError();assert.ok(unknown.render().error.uncertain);unknown.unmount();
+});
+
+test('request picker loads only this Nook, sends its selected artifact and renders a numeric memory link',async()=>{
+ const slots=[];let cursor=0;const paths=[];const sent=[];
+ const react={...React,useState(initial){const i=cursor++;if(!(i in slots))slots[i]=initial;return[slots[i],v=>slots[i]=typeof v==='function'?v(slots[i]):v];},useRef(initial){const i=cursor++;if(!(i in slots))slots[i]={current:initial};return slots[i];},useEffect(){cursor++;}};
+ const data=resources();for(const value of Object.values(data))value.mutate=async next=>{if(next)value.data=typeof next==='function'?next(value.data):next;return value.data;};
+ const base=loader()('@/lib/frontend/real-messages');const load=loader({react,'@/components/solibra/use-nook-data':{useNookData:(path,id)=>{assert.equal(id,5);paths.push(path);return data[path]||{};}},'@/components/solibra/use-conversation-viewport':{useConversationViewport(){}},'@/lib/frontend/real-messages':{...base,sendNookMessage:async(n,input)=>{sent.push({n,input});return{message:{...message,id:25,senderId:5,content:input.content,artifactId:input.artifactId}};}}});
+ const Component=load('@/components/solibra/real-conversation').RealConversation;const render=()=>{cursor=0;return Component({nookId:42,viewerId:5});};
+ function nodes(tree,predicate,out=[]){if(!tree||typeof tree!=='object')return out;if(Array.isArray(tree)){tree.forEach(n=>nodes(n,predicate,out));return out;}if(predicate(tree))out.push(tree);nodes(tree.props?.children,predicate,out);return out;}
+ nodes(render(),n=>n.type==='button'&&n.props.children==='Request a memory')[0].props.onClick();let tree=render();assert.ok(paths.includes('/api/nooks/42/artifacts'));
+ const select=nodes(tree,n=>n.type==='select')[0];assert.ok(nodes(select,n=>n.type==='option'&&n.props.value===7).length);assert.equal(nodes(select,n=>n.type==='option'&&n.props.value===8).length,0);
+ select.props.onChange({target:{value:'7'}});tree=render();nodes(tree,n=>n.type==='form')[0].props.onSubmit({preventDefault(){}});await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(sent.length,1);assert.equal(sent[0].n,42);assert.equal(sent[0].input.artifactId,7);assert.ok(sent[0].input.content.includes('A real artifact'));assert.ok(nodes(render(),n=>n.props?.href==='/circles/42/memories/7').length);assert.ok(!paths.some(path=>path?.includes('/99/')));
 });

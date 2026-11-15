@@ -1,13 +1,14 @@
 'use client';
 import Link from 'next/link';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, MessagesSquare, RefreshCw, Sparkles } from 'lucide-react';
 import { useSWRConfig } from 'swr';
 import type { NookResponse, NookMembershipListResponse } from '@/lib/nooks/types';
 import { createContributionSchema, type ArtifactResponse, type Contribution, type ContributionListResponse } from '@/lib/memories/types';
 import { artifactPath, artifactMediaPath, attachSavedPhoto, createWrittenContribution, memoryAuthor, memoryTypeLabel, MemoryWriteError } from '@/lib/frontend/real-memories';
-import { NookRequestError } from '@/lib/frontend/nook-api';
-import { sendNookMessage } from '@/lib/frontend/real-messages';
+import { nookRequest, NookRequestError } from '@/lib/frontend/nook-api';
+import { useMessageComposer } from './use-message-composer';
+import type { MessageListResponse } from '@/lib/memories/types';
 import { useNookData } from './use-nook-data';
 import { useConfirmedWrite } from './use-confirmed-write';
 import { NookRequestState } from './nook-request-state';
@@ -27,7 +28,6 @@ export function RealMemoryDetails({ nookId, artifactId, viewerId }: { nookId: nu
   const perspectives = useNookData<ContributionListResponse>(validMemory ? `${artifactPath(nookId, artifactId)}/contributions` : null, viewerId);
   const { mutate } = useSWRConfig();
   const perspectiveWrite = useConfirmedWrite();
-  const shareWrite = useConfirmedWrite();
   const photoWrite = useConfirmedWrite();
   const [editor, setEditor] = useState<'closed' | 'choice' | 'text' | 'voice'>('closed');
   const [voiceMounted, setVoiceMounted] = useState(false);
@@ -41,14 +41,21 @@ export function RealMemoryDetails({ nookId, artifactId, viewerId }: { nookId: nu
   const [review, setReview] = useState(false);
   const [perspectiveNotice, setPerspectiveNotice] = useState('');
   const [shareOpen, setShareOpen] = useState(false);
-  const [shareText, setShareText] = useState<string | null>(null);
   const [shareNotice, setShareNotice] = useState('');
+  const [shareActivation, setShareActivation] = useState(0);
+  const [inspectionError, setInspectionError] = useState('');
+  const sharing = useMessageComposer(nookId, viewerId, async () => {
+    setShareNotice('Shared in your Nook’s group conversation.');
+    await mutate([`/api/nooks/${nookId}/messages`,viewerId]);
+  });
+  useEffect(() => { if (shareActivation) document.getElementById('memory-share-message')?.focus(); }, [shareActivation]);
   const [file, setFile] = useState<File | null>(null);
   const [photoNotice, setPhotoNotice] = useState('');
   const readError = [nook, memory, people, perspectives].find(resource => resource.error && (denied(resource.error) || !resource.data))?.error;
-  const error = readError || perspectiveWrite.accessError || shareWrite.accessError || photoWrite.accessError;
+  const shareAccessError = sharing.error && [401,403,404].includes(sharing.error.status) ? sharing.error : null;
+  const error = readError || perspectiveWrite.accessError || shareAccessError || photoWrite.accessError;
   async function refresh() {
-    perspectiveWrite.clearError(); shareWrite.clearError(); photoWrite.clearError();
+    perspectiveWrite.clearError(); sharing.clearError(); photoWrite.clearError();
     await Promise.all([nook.mutate(), memory.mutate(), people.mutate(), perspectives.mutate()]).catch(() => {});
   }
   if (error || !validMemory || !people.data || !perspectives.data) return <main id="main-content" className="sol-main"><Link href={`/circles/${nookId}`}>← Back to Nook</Link>{error ? <NookRequestState error={error} retry={() => void refresh()}/> : nook.data && !verified || memory.data && verified && !validMemory ? <p role="alert">This memory could not be verified.</p> : <p role="status">Opening your memory…</p>}{draft && <p>Your unsent perspective is kept while this page stays open.</p>}</main>;
@@ -57,7 +64,7 @@ export function RealMemoryDetails({ nookId, artifactId, viewerId }: { nookId: nu
   const contributions = perspectives.data.contributions.filter(item => item.artifactId === artifactId).sort((a,b) => Date.parse(a.createdAt) - Date.parse(b.createdAt) || a.id - b.id);
   const voices = contributions.filter(item => item.type === 'audio');
   const hasRecording = (item: Contribution) => !!item.audioStorageKey || confirmedVoice?.id === item.id && confirmedVoice.version === item.updatedAt;
-  const primaryVoice = artifact.type === 'audio' && !artifact.mediaStorageKey ? voices.find(item => item.authorId === artifact.creatorId && hasRecording(item)) || voices.find(hasRecording) : undefined;
+  const primaryVoice = artifact.type === 'audio' && !artifact.mediaStorageKey ? voices.find(item => item.authorId === artifact.creatorId && hasRecording(item)) : undefined;
   function openVoice(id?: number) {
     if (voicePending || perspectiveWrite.pending) return;
     if (resumeVoice !== id && voiceDraft && !window.confirm('Discard your local recording to start a different voice perspective? Any saved draft remains.')) return;
@@ -70,10 +77,24 @@ export function RealMemoryDetails({ nookId, artifactId, viewerId }: { nookId: nu
     void perspectives.mutate().catch(() => {});
   }
   function renderVoice(item: Contribution) {
-    return <div key={item.id}><SavedVoice contribution={item} confirmedMedia={confirmedVoice?.id === item.id && confirmedVoice.version === item.updatedAt} nookId={nookId} artifactId={artifactId} viewerId={viewerId} authorName={memoryAuthor(item.authorId, nookId, members)} canManage={canManageVoice(viewerId, item.authorId, nook.data!.nook.role)}/>{!hasRecording(item) && item.authorId === viewerId && <button className="sol-outline-button" type="button" disabled={voicePending} onClick={() => openVoice(item.id)}>Resume this voice draft</button>}</div>;
+    return <div key={item.id}><SavedVoice contribution={item} confirmedMedia={confirmedVoice?.id === item.id && confirmedVoice.version === item.updatedAt} nookId={nookId} artifactId={artifactId} viewerId={viewerId} authorName={memoryAuthor(item.authorId, nookId, members)} canManage={canManageVoice(viewerId, item.authorId, nook.data!.nook.role)}/>{hasRecording(item) && item.authorId === viewerId && <button type="button" className="sol-outline-button" onClick={() => openSharing(true)}>Share reply in conversation</button>}{!hasRecording(item) && item.authorId === viewerId && <button className="sol-outline-button" type="button" disabled={voicePending} onClick={() => openVoice(item.id)}>Resume this voice draft</button>}</div>;
   }
   const canAttachPhoto = artifact.type === 'photo' && !artifact.mediaStorageKey && (artifact.creatorId === viewerId || nook.data!.nook.role === 'owner');
-  const shareValue = shareText ?? `Does anyone remember “${artifact.title}”?`;
+  const shareValue = sharing.draft;
+  function openSharing(reply: boolean) {
+    if (!sharing.pending && !sharing.needsRefresh) {
+      if (reply || !sharing.draft.trim()) sharing.setDraft(reply ? 'I added my voice to this memory.' : `Does anyone remember “${artifact.title}”?`);
+      sharing.setLinkedArtifactId(artifactId); setShareNotice('');
+    }
+    setShareOpen(true); setShareActivation(value => value + 1);
+  }
+  async function inspectConversation() {
+    setInspectionError('');
+    try {
+      await nookRequest<MessageListResponse>(`/api/nooks/${nookId}/messages`);
+      if (window.confirm('Check the conversation in the other tab. If your reply already appears, cancel. Allow another send only if it is missing.')) sharing.confirmRetryAfterInspection();
+    } catch (cause) { setInspectionError(cause instanceof Error ? cause.message : 'Unable to check the conversation.'); }
+  }
   async function addPerspective() {
     if (!review) return;
     await perspectiveWrite.run(() => createWrittenContribution(nookId, artifactId, { type: 'text', content: draft }), async ({ contribution }) => {
@@ -81,13 +102,6 @@ export function RealMemoryDetails({ nookId, artifactId, viewerId }: { nookId: nu
       setDraft(''); setReview(false); setPerspectiveNotice('Your perspective is saved.');
       await perspectives.mutate(current => ({ contributions: [...(current?.contributions || []).filter(item => item.id !== contribution.id), contribution] }), { revalidate: false });
       await perspectives.mutate().catch(() => setPerspectiveNotice('Perspective saved. Refresh to check the latest history; don’t submit it again.'));
-    });
-  }
-  async function share() {
-    await shareWrite.run(() => sendNookMessage(nookId, { content: shareValue, artifactId }), async ({ message }) => {
-      if (message.senderId !== viewerId) throw new MemoryWriteError(201, 'The sender could not be confirmed. Refresh the conversation before retrying.', true);
-      setShareNotice('Shared in your Nook’s group conversation.');
-      await mutate([`/api/nooks/${nookId}/messages`, viewerId]).catch(() => {});
     });
   }
   async function attach() {
@@ -100,13 +114,13 @@ export function RealMemoryDetails({ nookId, artifactId, viewerId }: { nookId: nu
   }
   return <main id="main-content" className="sol-main memory-details real-memory-details">
     <nav className="sol-breadcrumb" aria-label="Breadcrumb"><Link href="/">Library</Link><span>/</span><Link href={`/circles/${nookId}`}>{nook.data!.nook.name}</Link><span>/</span><span aria-current="page">{artifact.title}</span></nav>
-    <div className="memory-detail-introduction"><div><h1>{artifact.title}</h1><p>{memoryTypeLabel(artifact.type)} · Added by <strong className="memory-creator">{memoryAuthor(artifact.creatorId, nookId, members)}</strong> · <time dateTime={artifact.createdAt}>{new Date(artifact.createdAt).toLocaleDateString()}</time></p></div><button className="sol-outline-button" aria-expanded={shareOpen} onClick={() => { setShareOpen(value => !value); }}>Share in group conversation</button></div>
+    <div className="memory-detail-introduction"><div><h1>{artifact.title}</h1><p>{memoryTypeLabel(artifact.type)} · Added by <strong className="memory-creator">{memoryAuthor(artifact.creatorId, nookId, members)}</strong> · <time dateTime={artifact.createdAt}>{new Date(artifact.createdAt).toLocaleDateString()}</time></p></div><button className="sol-outline-button" aria-expanded={shareOpen} onClick={() => shareOpen ? setShareOpen(false) : openSharing(false)}>Share in group conversation</button></div>
     <div className="real-memory-actions"><Link href={`/circles/${nookId}`} className="sol-outline-button"><ArrowLeft size={17} aria-hidden="true"/>Back to Nook</Link><Link href={`/messages/${nookId}`} className="sol-outline-button"><MessagesSquare size={17} aria-hidden="true"/>Group conversation</Link><button className="sol-outline-button" onClick={() => void refresh()}><RefreshCw size={17} aria-hidden="true"/>Refresh memory</button></div>
-    {shareOpen && <section className="real-memory-form" aria-label="Share in group conversation"><h2>Bring your people into the story.</h2><p>This message is shared with everyone in {nook.data!.nook.name}.</p><form onSubmit={event => { event.preventDefault(); void share(); }}><label>Message<textarea rows={3} required maxLength={5000} value={shareValue} disabled={shareWrite.pending || !!shareNotice} onChange={event => setShareText(event.target.value)}/></label><small>{shareValue.length} / 5,000</small>{shareWrite.error && <p role="alert">{shareWrite.error.message} Check the conversation before retrying.</p>}{shareNotice ? <p role="status">{shareNotice} <Link href={`/messages/${nookId}`}>Open conversation →</Link></p> : <button type="submit" className="sol-button" disabled={shareWrite.pending || !shareValue.trim()}>{shareWrite.pending ? 'Sharing…' : 'Share memory'}</button>}</form></section>}
+    {shareOpen && <section className="real-memory-form" aria-label="Share in group conversation"><h2>Bring your people into the story.</h2><p>This message is shared with everyone in {nook.data!.nook.name}.</p><form onSubmit={event => { event.preventDefault(); void sharing.send(); }}><label>Message<textarea id="memory-share-message" rows={3} required maxLength={5000} value={shareValue} disabled={sharing.pending || sharing.needsRefresh || !!shareNotice} onChange={event => sharing.setDraft(event.target.value)}/></label><small>{shareValue.length} / 5,000</small>{sharing.error && <div role="alert"><p>{sharing.error.message}</p>{sharing.needsRefresh && <><Link target="_blank" rel="noopener noreferrer" href={`/messages/${nookId}`}>Open conversation to check →</Link><button type="button" className="sol-outline-button" onClick={() => void inspectConversation()}>I checked the conversation; allow retry</button></>}</div>}{inspectionError && <p role="alert">{inspectionError}</p>}{shareNotice ? <p role="status">{shareNotice} <Link href={`/messages/${nookId}`}>Open conversation →</Link></p> : <button type="submit" className="sol-button" disabled={sharing.pending || sharing.needsRefresh || !shareValue.trim()}>{sharing.pending ? 'Sharing…' : 'Share memory'}</button>}</form></section>}
     <div className="memory-detail-grid">
       <section className="memory-original" aria-label="The original memory">
         {artifact.type === 'photo' && (artifact.mediaStorageKey ? <figure><PrivatePhoto key={artifact.updatedAt} src={`${artifactMediaPath(artifact)}?v=${encodeURIComponent(artifact.updatedAt)}`} title={artifact.title}/><figcaption>{artifact.title}</figcaption></figure> : <div className="real-media-placeholder"><p>No photograph is attached yet.</p></div>)}
-        {artifact.type === 'audio' && (artifact.mediaStorageKey ? <PrivateRecording key={artifact.updatedAt} src={`${artifactMediaPath(artifact)}?v=${encodeURIComponent(artifact.updatedAt)}`} label={`Original recording: ${artifact.title}`}/> : primaryVoice ? <section className="original-voice-memory" aria-label="Original voice memory"><h2>Original recording</h2>{renderVoice(primaryVoice)}</section> : <p>No recording is attached yet. Record a voice perspective below, or resume your saved draft.</p>)}
+        {artifact.type === 'audio' && (artifact.mediaStorageKey ? <PrivateRecording key={artifact.updatedAt} src={`${artifactMediaPath(artifact)}?v=${encodeURIComponent(artifact.updatedAt)}`} label={`Original recording: ${artifact.title}`}/> : primaryVoice ? <section className="original-voice-memory" aria-label="Original voice memory"><h2>Original recording</h2>{renderVoice(primaryVoice)}</section> : <p>The creator’s original recording is not attached yet. Add a perspective below or resume your own saved draft.</p>)}
         <h2>{artifact.type === 'letter' ? 'A letter, kept close.' : 'The story behind it.'}</h2>{artifact.description ? <p className="memory-long-story">{artifact.description}</p> : <div className="memory-story-empty"><SolibraEmote variant="reading" size={80}/><p className="memory-long-story">This memory is waiting for its story.</p></div>}
         {canAttachPhoto && <section className="real-memory-form" aria-label="Attach missing photograph"><h3>Add its photograph</h3><PhotoSelection file={file} onChange={setFile} disabled={photoWrite.pending}/><button className="sol-outline-button" disabled={photoWrite.pending || !file} onClick={() => void attach()}>{photoWrite.pending ? 'Attaching photograph…' : photoWrite.error ? 'Retry photograph upload' : 'Attach photograph'}</button>{photoWrite.error && <p role="alert">{photoWrite.error.message} The memory is still saved. Retry uses this same memory.</p>}</section>}
         {photoNotice && <p role="status">{photoNotice}</p>}
