@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createContext, Suspense, useContext, useState } from 'react';
 import { Dialog } from 'radix-ui';
-import { Home, LogOut, X } from 'lucide-react';
+import { Home, LogOut, UserRound, X } from 'lucide-react';
 import useSWR, { mutate } from 'swr';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -34,8 +34,9 @@ function AccountMenu() {
 
   async function handleSignOut() {
     await signOut();
-    mutate('/api/user');
+    await mutate(() => true, undefined, { revalidate: false });
     router.push('/');
+    router.refresh();
   }
 
   if (!user) return <Link className="sol-account" href="/sign-in" aria-label="Sign in"><Avatar className="size-12"><AvatarImage src="/solibra/sofia.png" alt="" /><AvatarFallback>S</AvatarFallback></Avatar></Link>;
@@ -46,8 +47,9 @@ function AccountMenu() {
         <Avatar className="size-12"><AvatarFallback>{(user.name || user.email).slice(0, 1).toUpperCase()}</AvatarFallback></Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem asChild><Link href="/dashboard"><Home /> Account settings</Link></DropdownMenuItem>
-        <DropdownMenuItem onSelect={handleSignOut}><LogOut /> Sign out</DropdownMenuItem>
+        <DropdownMenuItem asChild><Link href="/profile"><UserRound /> View Profile</Link></DropdownMenuItem>
+        <DropdownMenuItem asChild><Link href="/dashboard/general"><Home /> Account Settings</Link></DropdownMenuItem>
+        <DropdownMenuItem onSelect={handleSignOut}><LogOut /> Sign Out</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -84,7 +86,7 @@ export function SolibraShell({ children }: { children: React.ReactNode }) {
       <nav aria-label="Mobile navigation" className="sol-bottom-nav">
         <Link href="/" aria-current={(pathname === '/' || pathname === '/nooks/new' || inNook) ? 'page' : undefined}><DesignIcon name="library" />Library</Link>
         <Link href={`/messages/${circleId}`} aria-current={inMessages ? 'page' : undefined}><DesignIcon name="messages" />Messages</Link>
-        <Link href="/dashboard"><DesignIcon name="user" />You</Link>
+        <Link href="/profile" aria-current={pathname === '/profile' || pathname.startsWith('/profile/') ? 'page' : undefined}><DesignIcon name="user" />You</Link>
       </nav>
       <Dialog.Root open={!!notice} onOpenChange={(open) => { if (!open) setNotice(null); }}>
           <Dialog.Overlay className="sol-dialog-overlay" />

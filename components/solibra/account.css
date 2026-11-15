@@ -1,0 +1,47 @@
+.account-theme { padding-bottom: 0; min-height: 100dvh; }
+.account-auth { width: 100%; max-width: 1280px; margin: auto; padding: 24px; }
+.account-auth > .sol-logo { width: fit-content; }
+.account-auth-grid { display: grid; align-items: center; gap: 32px; margin: 40px auto; max-width: 1080px; }
+.account-welcome h1, .account-page h1 { font: 400 clamp(30px, 4vw, 46px)/1.2 var(--font-solibra-decorative), serif; margin: 16px 0 24px; }
+.account-welcome > p:last-of-type, .account-intro, .account-help { color: var(--sol-secondary); }
+.account-sun { display: none; }
+.account-card { background: var(--sol-raised); border: 1px solid var(--sol-subtle); border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 20px; min-width: 0; overflow-wrap: anywhere; }
+.account-card h2 { font: 400 26px/1.3 var(--font-solibra-decorative), serif; }
+.account-card h3 { font: 500 20px/1.4 var(--font-solibra-display), sans-serif; }
+.account-form { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.account-form input:not([type="hidden"]) { width: 100%; min-width: 0; min-height: 48px; font: inherit; color: var(--sol-cream); background: var(--sol-inset); border: 1px solid var(--sol-subtle); border-radius: 12px; padding: 12px; }
+.account-form input::placeholder { color: var(--sol-secondary); opacity: .8; }
+.account-form input:focus-visible { outline: 2px solid var(--sol-action); outline-offset: 3px; }
+.account-form [aria-invalid="true"] { border-color: var(--sol-action); }
+.account-form small, .account-help, .member-profile-card small { font-size: 13px; color: var(--sol-secondary); }
+.account-form p:empty { display: none; }
+.account-form a { text-decoration: underline; text-underline-offset: 3px; }
+.account-feedback { padding: 12px; border: 1px solid var(--sol-action); border-radius: 12px; font-size: 14px; }
+.account-switch { display: flex; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--sol-subtle); padding-top: 20px; font-size: 14px; }
+.account-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.account-actions > * { flex: 1; min-width: 120px; }
+.account-page { max-width: 1280px; margin: auto; width: 100%; }
+.account-page-narrow { max-width: 780px; }
+.account-intro { margin-bottom: 24px !important; }
+.account-profile-grid { display: grid; gap: 24px; align-items: start; }
+.account-nooks-column { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.account-avatar { width: 72px; height: 72px; font: 500 28px/1 var(--font-solibra-display), sans-serif; flex-shrink: 0; }
+.account-avatar [data-slot="avatar-fallback"] { background: var(--sol-blush); color: var(--sol-on-light); }
+.account-email { color: var(--sol-secondary); }
+.account-nook-list { display: flex; flex-direction: column; gap: 16px; margin: 0; padding: 0; list-style: none; }
+.account-nook-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 16px; background: var(--sol-inset); border-radius: 12px; }
+.account-nook-list li > div { min-width: 150px; flex: 1; }
+.account-nook-list small { color: var(--sol-action); }
+.member-profile-card { display: flex; gap: 16px; align-items: center; }
+.member-profile-card > div { min-width: 0; }
+.account-section-heading { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: space-between; }
+.account-settings { padding: 24px; }
+.account-loading { padding: 32px; color: var(--sol-cream); }
+.account-page button:disabled, .account-auth button:disabled { opacity: .6; cursor: default; }
+@media (min-width: 900px) {
+  .account-auth { padding: 32px 64px; }
+  .account-auth-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 80px; min-height: 70dvh; }
+  .account-card { padding: 32px; }
+  .account-sun { display: grid; place-items: center; width: 180px; height: 130px; margin-top: 32px; background: var(--sol-rose); border: 2px solid var(--sol-subtle); border-radius: 50% 50% 12px 12px / 70% 70% 12px 12px; }
+  .account-profile-grid { grid-template-columns: minmax(0, .8fr) minmax(0, 1.4fr); }
+}

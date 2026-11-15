@@ -67,8 +67,7 @@ export const signIn = validatedAction(signInSchema, async (data) => {
   if (userWithTeam.length === 0) {
     return {
       error: 'Invalid email or password. Please try again.',
-      email,
-      password
+      email
     };
   }
 
@@ -82,8 +81,7 @@ export const signIn = validatedAction(signInSchema, async (data) => {
   if (!isPasswordValid) {
     return {
       error: 'Invalid email or password. Please try again.',
-      email,
-      password
+      email
     };
   }
 
@@ -143,7 +141,7 @@ export const signUp = validatedAction(signUpSchema, async (data) => {
     throw error;
   }
   await setSession(createdUser);
-  redirect('/dashboard');
+  redirect('/profile/setup');
 });
 
 export async function signOut() {
