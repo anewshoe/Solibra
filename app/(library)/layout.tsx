@@ -8,6 +8,7 @@ import '@/components/solibra/real-nooks.css';
 import '@/components/solibra/account.css';
 import '@/components/solibra/create-nook.css';
 import '@/components/solibra/real-memories.css';
+import '@/components/solibra/ui-polish.css';
 
 const body = DM_Sans({ subsets: ['latin'], variable: '--font-solibra-body' });
 const display = Fredoka({ subsets: ['latin'], weight: '500', variable: '--font-solibra-display' });
@@ -17,7 +18,7 @@ export default async function LibraryLayout({ children }: { children: React.Reac
   const user = await getUser();
   return (
     <div className={`solibra ${body.variable} ${display.variable} ${decorative.variable}`}>
-      <DemoProvider key={user?.id ?? 'signed-out'}><SolibraShell>{children}</SolibraShell></DemoProvider>
+      <DemoProvider key={user?.id ?? 'signed-out'}><SolibraShell signedOut={!user}>{children}</SolibraShell></DemoProvider>
     </div>
   );
 }

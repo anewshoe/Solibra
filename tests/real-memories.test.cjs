@@ -178,7 +178,7 @@ test('conversation artifact reads are disabled for plain text and failed history
  for(const [messages,error,expected] of [[[],null,false],[[{id:1,nookId:42,senderId:5,content:'Hi',artifactId:null,createdAt:artifact.createdAt}],null,false],[[{id:1,nookId:42,senderId:5,content:'Look',artifactId:7,createdAt:artifact.createdAt}],null,true],[[{id:1,nookId:42,artifactId:7}],new Error('Denied'),false]]){
   const paths=[];
   const resources={...detailResources(),'/api/nooks':{data:{nooks:[nook]}},'/api/nooks/42/messages':{data:{messages},error},'/api/nooks/42/artifacts':{data:{artifacts:[artifact]}}};
-  const load=detailsLoader(resources,{'@/components/solibra/use-nook-data':{useNookData:path=>{paths.push(path);return resources[path]||{};}},'@/components/solibra/use-conversation-viewport':{useConversationViewport(){}},'@/components/solibra/use-message-composer':{useMessageComposer:()=>({draft:'',pending:false,error:null,notice:''})}});
+  const load=detailsLoader(resources,{'@/components/solibra/use-nook-data':{useNookData:path=>{paths.push(path);return resources[path]||{};}},'@/components/solibra/use-conversation-viewport':{useConversationViewport(){}},'@/components/solibra/window-memories':{WindowMemories:()=>null},'@/components/solibra/use-message-composer':{useMessageComposer:()=>({draft:'',pending:false,error:null,notice:''})}});
   const Component=load('@/components/solibra/real-conversation').RealConversation;const html=renderToStaticMarkup(React.createElement(Component,{nookId:42,viewerId:5}));assert.equal(paths.includes('/api/nooks/42/artifacts'),expected);if(expected)assert.ok(html.includes('/circles/42/memories/7'));
  }
 });

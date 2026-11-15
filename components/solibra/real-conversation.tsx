@@ -59,7 +59,7 @@ export function RealConversation({nookId,viewerId}:{nookId:number;viewerId:numbe
           <p id="group-message-help" className="real-message-help">{composer.draft.length} / 5,000 · Shift+Enter for a new line</p>{composer.pending&&<p role="status">Sending…</p>}{composer.notice&&<p role="status">{composer.notice}</p>}{composer.error&&<div role="alert"><p>{composer.error.message}</p><button className="sol-text-link" type="button" onClick={()=>void history.mutate().catch(()=>{})}>Refresh before retrying</button></div>}
         </form>
       </section>
-      <aside className="messages-context"><h2>A shared thread</h2><NookWindow nook={nook} initialOpen/><p>One conversation for everyone in this Nook. Refresh to check for new messages.</p><p>Share a memory from its details page. Voice messages aren’t connected here yet.</p></aside>
+      <aside className="messages-context"><h2>A shared thread</h2><NookWindow nook={nook} viewerId={viewerId} initialOpen/><p>One conversation for everyone in this Nook. Refresh to check for new messages.</p><p>Share a memory from its details page. Voice messages aren’t connected here yet.</p></aside>
     </div>
   </main>;
 }
