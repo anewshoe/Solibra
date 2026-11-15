@@ -68,7 +68,7 @@ test('photo validation and upload recovery preserve the saved artifact identity 
 
 function hookReact() {
  const slots=[];let cursor=0;const cleanups=[];
- return { reset(){cursor=0;}, unmount(){cleanups.forEach(fn=>fn?.());}, react:{...React,useState(initial){const i=cursor++;if(!(i in slots))slots[i]=initial;return[slots[i],value=>slots[i]=typeof value==='function'?value(slots[i]):value];},useRef(initial){const i=cursor++;if(!(i in slots))slots[i]={current:initial};return slots[i];},useEffect(effect){const i=cursor++;if(!(i in slots)){slots[i]=true;cleanups.push(effect());}}} };
+ return { reset(){cursor=0;}, unmount(){cleanups.forEach(fn=>fn?.());}, react:{...React,useCallback:fn=>fn,useState(initial){const i=cursor++;if(!(i in slots))slots[i]=initial;return[slots[i],value=>slots[i]=typeof value==='function'?value(slots[i]):value];},useRef(initial){const i=cursor++;if(!(i in slots))slots[i]={current:initial};return slots[i];},useEffect(effect){const i=cursor++;if(!(i in slots)){slots[i]=true;cleanups.push(effect());}}} };
 }
 function nodes(tree, predicate, found=[]) {
  if(!tree||typeof tree!=='object')return found;

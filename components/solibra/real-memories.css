@@ -46,3 +46,11 @@
 .real-message-artifact a { text-decoration: underline; text-underline-offset: 3px; }
 @media(max-width: 359px) { .real-memory-form { padding: 14px; } .memory-type-options { flex-direction: column; } .real-memory-actions { align-items: stretch; flex-direction: column; } }
 @media(prefers-reduced-motion: reduce) { .real-artifact { transition: none; } }
+
+.real-recorder { margin-top: 24px; }
+.saved-voice-results { display: grid; gap: 16px; margin-top: 16px; }
+.saved-voice-results label { display: grid; gap: 8px; }
+.saved-voice select, .real-recorder select { width: 100%; min-width: 0; min-height: 44px; padding: 10px; border: 1px solid var(--sol-subtle); border-radius: 12px; background: var(--sol-inset); color: var(--sol-cream); }
+.real-recorder .voice-recording-status { flex-wrap: wrap; gap: 12px; }
+.real-recorder .real-memory-actions { margin-top: 16px; }
+.saved-voice { min-width: 0; overflow-wrap: anywhere; }

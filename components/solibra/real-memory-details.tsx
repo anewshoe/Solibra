@@ -13,6 +13,8 @@ import { NookRequestState } from './nook-request-state';
 import { PhotoSelection, PrivatePhoto } from './photo-attachment';
 import { PrivateRecording } from './private-recording';
 import { SolibraEmote } from './solibra-emote';
+import { SavedVoice, canManageVoice } from './voice/saved-voice';
+import { RealRecorder } from './voice/real-recorder';
 
 export function RealMemoryDetails({ nookId, artifactId, viewerId }: { nookId: number; artifactId: number; viewerId: number }) {
   const nook = useNookData<NookResponse>(`/api/nooks/${nookId}`, viewerId);
@@ -26,6 +28,8 @@ export function RealMemoryDetails({ nookId, artifactId, viewerId }: { nookId: nu
   const shareWrite = useConfirmedWrite();
   const photoWrite = useConfirmedWrite();
   const [perspectiveOpen, setPerspectiveOpen] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [resumeVoice, setResumeVoice] = useState<number | undefined>();
   const [draft, setDraft] = useState('');
   const [review, setReview] = useState(false);
   const [perspectiveNotice, setPerspectiveNotice] = useState('');
@@ -78,7 +82,7 @@ export function RealMemoryDetails({ nookId, artifactId, viewerId }: { nookId: nu
     <div className="memory-detail-grid">
       <section className="memory-original" aria-label="The original memory">
         {artifact.type === 'photo' && (artifact.mediaStorageKey ? <figure><PrivatePhoto key={artifact.updatedAt} src={`${artifactMediaPath(artifact)}?v=${encodeURIComponent(artifact.updatedAt)}`} title={artifact.title}/><figcaption>{artifact.title}</figcaption></figure> : <div className="real-media-placeholder"><p>No photograph is attached yet.</p></div>)}
-        {artifact.type === 'audio' && (artifact.mediaStorageKey ? <PrivateRecording key={artifact.updatedAt} src={`${artifactMediaPath(artifact)}?v=${encodeURIComponent(artifact.updatedAt)}`} label={`Original recording: ${artifact.title}`}/> : <p>No recording is attached to this memory.</p>)}
+        {artifact.type === 'audio' && (artifact.mediaStorageKey ? <PrivateRecording key={artifact.updatedAt} src={`${artifactMediaPath(artifact)}?v=${encodeURIComponent(artifact.updatedAt)}`} label={`Original recording: ${artifact.title}`}/> : voices.some(item => item.audioStorageKey) ? <p>This memory’s saved recording is in <a href="#real-original-voices" className="sol-text-link">In their own words ↓</a>.</p> : <p>No recording is attached to this memory yet. Add a voice perspective below.</p>)}
         <h2>{artifact.type === 'letter' ? 'A letter, kept close.' : 'The story behind it.'}</h2>{artifact.description ? <p className="memory-long-story">{artifact.description}</p> : <div className="memory-story-empty"><SolibraEmote variant="reading" size={80}/><p className="memory-long-story">This memory is waiting for its story.</p></div>}
         {canAttachPhoto && <section className="real-memory-form" aria-label="Attach missing photograph"><h3>Add its photograph</h3><PhotoSelection file={file} onChange={setFile} disabled={photoWrite.pending}/><button className="sol-outline-button" disabled={photoWrite.pending || !file} onClick={() => void attach()}>{photoWrite.pending ? 'Attaching photograph…' : photoWrite.error ? 'Retry photograph upload' : 'Attach photograph'}</button>{photoWrite.error && <p role="alert">{photoWrite.error.message} The memory is still saved. Retry uses this same memory.</p>}</section>}
         {photoNotice && <p role="status">{photoNotice}</p>}
@@ -86,6 +90,8 @@ export function RealMemoryDetails({ nookId, artifactId, viewerId }: { nookId: nu
           {!contributions.some(item => item.type === 'text') && <p>Be the first to add a written perspective.</p>}
           {contributions.filter(item => item.type === 'text').map(item => <article className="real-perspective" key={item.id}><h3>{memoryAuthor(item.authorId, nookId, members)}</h3><time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleString()}</time><p>{item.content}</p></article>)}
           <button className="sol-outline-button" aria-expanded={perspectiveOpen} onClick={() => setPerspectiveOpen(value => !value)}>Add your perspective</button>
+          {perspectiveOpen && <div className="real-memory-actions"><button className="sol-outline-button" type="button" onClick={() => setPerspectiveOpen(true)}>Write a perspective</button><button className="sol-outline-button" type="button" onClick={() => setVoiceOpen(true)}>Record a voice perspective</button></div>}
+          {voiceOpen && <RealRecorder key={`${viewerId}:${artifactId}:${resumeVoice || 'new'}`} nookId={nookId} artifactId={artifactId} contributionId={resumeVoice} viewerId={viewerId}/>}
           {perspectiveOpen && <form className="real-memory-form" onSubmit={event => { event.preventDefault(); if (!review) { if (createContributionSchema.safeParse({ type: 'text', content: draft }).success) setReview(true); } else void addPerspective(); }}>
             <label>Your recollection<textarea required maxLength={20000} rows={6} value={draft} readOnly={review} disabled={perspectiveWrite.pending} onChange={event => setDraft(event.target.value)}/></label><small>{draft.length} / 20,000</small>{review && <p>Review your words above. They will be attributed to your authenticated account and visible to this Nook.</p>}
             <div className="real-memory-actions"><button className="sol-button" type="submit" disabled={perspectiveWrite.pending || !draft.trim()}>{perspectiveWrite.pending ? 'Saving…' : review ? 'Save perspective' : 'Review perspective'}</button><button className="sol-outline-button" type="button" disabled={perspectiveWrite.pending} onClick={() => review ? setReview(false) : setPerspectiveOpen(false)}>{review ? 'Edit' : 'Cancel'}</button></div>
@@ -93,7 +99,7 @@ export function RealMemoryDetails({ nookId, artifactId, viewerId }: { nookId: nu
           </form>}{perspectiveNotice && <p role="status">{perspectiveNotice}</p>}
         </section>
       </section>
-      <aside className="voice-story-panel real-voices" aria-label="Original voices"><h2>In their own words.</h2>{!voices.length && <p>No voice contributions yet.</p>}{voices.map(item => <article className="real-perspective" key={item.id}><h3>{memoryAuthor(item.authorId, nookId, members)}</h3><time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleString()}</time>{item.audioStorageKey ? <PrivateRecording key={item.updatedAt} src={`${artifactPath(nookId, artifactId)}/contributions/${item.id}/media?v=${encodeURIComponent(item.updatedAt)}`} label={`Original voice by ${memoryAuthor(item.authorId, nookId, members)}`}/> : <p>Recording unavailable · {item.processingStatus || 'No processing status available'}</p>}{item.audioStorageKey && item.processingStatus && <p>Processing: {item.processingStatus}</p>}<h4>Original transcript{item.sourceLanguage ? ` · ${item.sourceLanguage}` : ''}</h4><p className="real-transcript">{item.originalTranscript || 'An original transcript is not available yet.'}</p><p className="real-memory-help">Translations aren’t available yet.</p></article>)}</aside>
+      <aside id="real-original-voices" className="voice-story-panel real-voices" aria-label="Original voices"><h2>In their own words.</h2>{!voices.length && <p>No voice contributions yet.</p>}{voices.map(item => <div key={item.id}><SavedVoice contribution={item} nookId={nookId} artifactId={artifactId} viewerId={viewerId} authorName={memoryAuthor(item.authorId, nookId, members)} canManage={canManageVoice(viewerId, item.authorId, nook.data!.nook.role)}/>{!item.audioStorageKey && item.authorId === viewerId && <button className="sol-outline-button" type="button" disabled={voiceOpen} onClick={() => { setResumeVoice(item.id); setVoiceOpen(true); }}>Attach recording to this saved draft</button>}</div>)}</aside>
     </div>
   </main>;
 }

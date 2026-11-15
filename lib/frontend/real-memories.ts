@@ -67,6 +67,12 @@ export async function createWrittenContribution(nookId: number, artifactId: numb
     return !!c && validId(c.id) && c.artifactId === artifactId && validId(c.authorId) && c.type === 'text' && c.content === body.content;
   });
 }
+export async function createAudioContribution(nookId: number, artifactId: number) {
+  return confirmedPost<ContributionResponse>(`${artifactPath(nookId, artifactId)}/contributions`, createContributionSchema.parse({ type: 'audio' }), value => {
+    const c = value.contribution;
+    return !!c && validId(c.id) && c.artifactId === artifactId && validId(c.authorId) && c.type === 'audio';
+  });
+}
 
 /** A retry checks the existing resource first: never create a second artifact or
  * replace an attachment just because the completion acknowledgment was lost. */
