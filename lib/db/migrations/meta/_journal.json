@@ -15,6 +15,13 @@
       "when": 1794691228557,
       "tag": "0001_remove_payments",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794695665309,
+      "tag": "0002_nook_details",
+      "breakpoints": true
     }
   ]
 }

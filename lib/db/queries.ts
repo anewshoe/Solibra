@@ -1,8 +1,9 @@
-import { desc, and, eq, isNull } from 'drizzle-orm';
+import { asc, desc, and, eq, isNull } from 'drizzle-orm';
 import { db } from './drizzle';
 import { activityLogs, teamMembers, teams, users } from './schema';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
+import { errors as joseErrors } from 'jose';
 
 export async function getUser() {
   const sessionCookie = (await cookies()).get('session');
@@ -10,7 +11,13 @@ export async function getUser() {
     return null;
   }
 
-  const sessionData = await verifyToken(sessionCookie.value);
+  let sessionData;
+  try {
+    sessionData = await verifyToken(sessionCookie.value);
+  } catch (error) {
+    if (error instanceof joseErrors.JOSEError) return null;
+    throw error;
+  }
   if (
     !sessionData ||
     !sessionData.user ||
@@ -19,7 +26,8 @@ export async function getUser() {
     return null;
   }
 
-  if (new Date(sessionData.expires) < new Date()) {
+  const expires = Date.parse(sessionData.expires);
+  if (!Number.isFinite(expires) || expires <= Date.now()) {
     return null;
   }
 
@@ -45,6 +53,7 @@ export async function getUserWithTeam(userId: number) {
     .from(users)
     .leftJoin(teamMembers, eq(users.id, teamMembers.userId))
     .where(eq(users.id, userId))
+    .orderBy(asc(teamMembers.id))
     .limit(1);
 
   return result[0];
@@ -79,6 +88,7 @@ export async function getTeamForUser() {
 
   const result = await db.query.teamMembers.findFirst({
     where: eq(teamMembers.userId, user.id),
+    orderBy: asc(teamMembers.id),
     with: {
       team: {
         with: {

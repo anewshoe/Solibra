@@ -22,6 +22,7 @@ export const users = pgTable('users', {
 export const teams = pgTable('teams', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 100 }).notNull(),
+  description: text('description'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -134,4 +135,11 @@ export enum ActivityType {
   REMOVE_TEAM_MEMBER = 'REMOVE_TEAM_MEMBER',
   INVITE_TEAM_MEMBER = 'INVITE_TEAM_MEMBER',
   ACCEPT_INVITATION = 'ACCEPT_INVITATION',
+  CREATE_NOOK = 'CREATE_NOOK',
+  UPDATE_NOOK = 'UPDATE_NOOK',
+  INVITE_NOOK_MEMBER = 'INVITE_NOOK_MEMBER',
+  ACCEPT_NOOK_INVITATION = 'ACCEPT_NOOK_INVITATION',
+  REVOKE_NOOK_INVITATION = 'REVOKE_NOOK_INVITATION',
+  UPDATE_NOOK_MEMBER = 'UPDATE_NOOK_MEMBER',
+  REMOVE_NOOK_MEMBER = 'REMOVE_NOOK_MEMBER',
 }

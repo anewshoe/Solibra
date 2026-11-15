@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
 import {
   User,
@@ -9,9 +9,6 @@ import {
   teams,
   teamMembers,
   activityLogs,
-  type NewUser,
-  type NewTeam,
-  type NewTeamMember,
   type NewActivityLog,
   ActivityType,
   invitations
@@ -20,6 +17,11 @@ import { comparePasswords, hashPassword, setSession } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { getUser, getUserWithTeam } from '@/lib/db/queries';
+import {
+  acceptNookInvitationInTransaction, createNookInTransaction,
+  inviteNookMember, manageNookMember
+} from '@/lib/nooks/service';
+import { NookError } from '@/lib/nooks/errors';
 import {
   validatedAction,
   validatedActionWithUser
@@ -59,7 +61,7 @@ export const signIn = validatedAction(signInSchema, async (data) => {
     .from(users)
     .leftJoin(teamMembers, eq(users.id, teamMembers.userId))
     .leftJoin(teams, eq(teamMembers.teamId, teams.id))
-    .where(eq(users.email, email))
+    .where(and(eq(users.email, email), isNull(users.deletedAt)))
     .limit(1);
 
   if (userWithTeam.length === 0) {
@@ -94,118 +96,62 @@ export const signIn = validatedAction(signInSchema, async (data) => {
 });
 
 const signUpSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  inviteId: z.string().optional()
+  email: z.string().email().max(255),
+  password: z.string().min(8).max(100),
+  inviteId: z.preprocess(
+    (value) => value === '' ? undefined : value,
+    z.string().regex(/^[1-9]\d*$/, 'Invalid Nook invitation ID.').optional()
+  )
 });
 
 export const signUp = validatedAction(signUpSchema, async (data) => {
   const { email, password, inviteId } = data;
-
-  const existingUser = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
-
-  if (existingUser.length > 0) {
-    return {
-      error: 'Failed to create user. Please try again.',
-      email,
-      password
-    };
-  }
-
   const passwordHash = await hashPassword(password);
-
-  const newUser: NewUser = {
-    email,
-    passwordHash,
-    role: 'owner' // Default role, will be overridden if there's an invitation
-  };
-
-  const [createdUser] = await db.insert(users).values(newUser).returning();
-
-  if (!createdUser) {
-    return {
-      error: 'Failed to create user. Please try again.',
-      email,
-      password
-    };
-  }
-
-  let teamId: number;
-  let userRole: string;
-  let createdTeam: typeof teams.$inferSelect | null = null;
-
-  if (inviteId) {
-    // Check if there's a valid invitation
-    const [invitation] = await db
-      .select()
-      .from(invitations)
-      .where(
-        and(
-          eq(invitations.id, parseInt(inviteId)),
-          eq(invitations.email, email),
-          eq(invitations.status, 'pending')
-        )
-      )
-      .limit(1);
-
-    if (invitation) {
-      teamId = invitation.teamId;
-      userRole = invitation.role;
-
-      await db
-        .update(invitations)
-        .set({ status: 'accepted' })
-        .where(eq(invitations.id, invitation.id));
-
-      await logActivity(teamId, createdUser.id, ActivityType.ACCEPT_INVITATION);
-    } else {
-      return { error: 'Invalid or expired invitation.', email, password };
+  let createdUser: User;
+  try {
+    createdUser = await db.transaction(async (tx) => {
+      // A failed invitation rolls back the account as well as membership changes.
+      const invitationId = inviteId ? Number(inviteId) : undefined;
+      if (invitationId !== undefined && !Number.isSafeInteger(invitationId)) {
+        throw new NookError(400, 'INVALID_REQUEST', 'Invalid Nook invitation ID.');
+      }
+      const [pendingInvitation] = invitationId ? await tx.select().from(invitations)
+        .where(and(eq(invitations.id, invitationId), eq(invitations.status, 'pending'))).limit(1) : [];
+      if (invitationId && (!pendingInvitation || pendingInvitation.email.toLowerCase() !== email.toLowerCase())) {
+        throw new NookError(404, 'NOT_FOUND', 'Nook invitation not found.');
+      }
+      const [user] = await tx.insert(users).values({
+        email, passwordHash, role: pendingInvitation?.role ?? 'owner'
+      }).returning();
+      let nookId: number;
+      if (pendingInvitation) {
+        ({ nookId } = await acceptNookInvitationInTransaction(tx, user.id, pendingInvitation.teamId, pendingInvitation.id));
+      } else {
+        const nook = await createNookInTransaction(tx, user.id, { name: email.slice(0, 93) + "'s Nook" });
+        nookId = nook.id;
+      }
+      await tx.insert(activityLogs).values({ teamId: nookId, userId: user.id, action: ActivityType.SIGN_UP });
+      return user;
+    });
+  } catch (error) {
+    if (error instanceof NookError) return { error: error.message, email };
+    // Drizzle may wrap the PostgreSQL unique-constraint error in a cause.
+    const cause = error as { code?: string; cause?: { code?: string } };
+    if (cause.code === '23505' || cause.cause?.code === '23505') {
+      return { error: 'Unable to create this account. Try signing in instead.', email };
     }
-  } else {
-    // Create a new team if there's no invitation
-    const newTeam: NewTeam = {
-      name: `${email}'s Team`
-    };
-
-    [createdTeam] = await db.insert(teams).values(newTeam).returning();
-
-    if (!createdTeam) {
-      return {
-        error: 'Failed to create team. Please try again.',
-        email,
-        password
-      };
-    }
-
-    teamId = createdTeam.id;
-    userRole = 'owner';
-
-    await logActivity(teamId, createdUser.id, ActivityType.CREATE_TEAM);
+    throw error;
   }
-
-  const newTeamMember: NewTeamMember = {
-    userId: createdUser.id,
-    teamId: teamId,
-    role: userRole
-  };
-
-  await Promise.all([
-    db.insert(teamMembers).values(newTeamMember),
-    logActivity(teamId, createdUser.id, ActivityType.SIGN_UP),
-    setSession(createdUser)
-  ]);
-
+  await setSession(createdUser);
   redirect('/dashboard');
 });
 
 export async function signOut() {
-  const user = (await getUser()) as User;
-  const userWithTeam = await getUserWithTeam(user.id);
-  await logActivity(userWithTeam?.teamId, user.id, ActivityType.SIGN_OUT);
+  const user = await getUser();
+  if (user) {
+    const userWithTeam = await getUserWithTeam(user.id);
+    await logActivity(userWithTeam?.teamId, user.id, ActivityType.SIGN_OUT);
+  }
   (await cookies()).delete('session');
 }
 
@@ -286,32 +232,33 @@ export const deleteAccount = validatedActionWithUser(
       };
     }
 
-    const userWithTeam = await getUserWithTeam(user.id);
-
-    await logActivity(
-      userWithTeam?.teamId,
-      user.id,
-      ActivityType.DELETE_ACCOUNT
-    );
-
-    // Soft delete
-    await db
-      .update(users)
-      .set({
-        deletedAt: sql`CURRENT_TIMESTAMP`,
-        email: sql`CONCAT(email, '-', id, '-deleted')` // Ensure email uniqueness
-      })
-      .where(eq(users.id, user.id));
-
-    if (userWithTeam?.teamId) {
-      await db
-        .delete(teamMembers)
-        .where(
-          and(
-            eq(teamMembers.userId, user.id),
-            eq(teamMembers.teamId, userWithTeam.teamId)
-          )
-        );
+    try {
+      await db.transaction(async (tx) => {
+        // Lock all Nooks in a stable order before changing this user's memberships.
+        const memberships = await tx.select({ nookId: teams.id }).from(teams)
+          .innerJoin(teamMembers, eq(teamMembers.teamId, teams.id))
+          .where(eq(teamMembers.userId, user.id)).orderBy(asc(teams.id))
+          .for('update', { of: teams });
+        for (const nookId of new Set(memberships.map((m) => m.nookId))) {
+          const owners = await tx.select({ userId: teamMembers.userId }).from(teamMembers)
+            .innerJoin(users, eq(users.id, teamMembers.userId)).where(and(
+              eq(teamMembers.teamId, nookId), eq(teamMembers.role, 'owner'), isNull(users.deletedAt)
+            ));
+          if (owners.some((owner) => owner.userId === user.id) &&
+              !owners.some((owner) => owner.userId !== user.id)) {
+            throw new NookError(409, 'CONFLICT', 'Transfer Nook ownership before deleting your account.');
+          }
+          await tx.insert(activityLogs).values({ teamId: nookId, userId: user.id, action: ActivityType.DELETE_ACCOUNT });
+        }
+        await tx.update(users).set({
+          deletedAt: sql`CURRENT_TIMESTAMP`,
+          email: sql`CONCAT(email, '-', id, '-deleted')`
+        }).where(eq(users.id, user.id));
+        await tx.delete(teamMembers).where(eq(teamMembers.userId, user.id));
+      });
+    } catch (error) {
+      if (error instanceof NookError) return { error: error.message };
+      throw error;
     }
 
     (await cookies()).delete('session');
@@ -340,101 +287,40 @@ export const updateAccount = validatedActionWithUser(
 );
 
 const removeTeamMemberSchema = z.object({
-  memberId: z.number()
+  memberId: z.coerce.number().int().positive().safe()
 });
 
 export const removeTeamMember = validatedActionWithUser(
   removeTeamMemberSchema,
   async (data, _, user) => {
-    const { memberId } = data;
-    const userWithTeam = await getUserWithTeam(user.id);
-
-    if (!userWithTeam?.teamId) {
-      return { error: 'User is not part of a team' };
+    const current = await getUserWithTeam(user.id);
+    if (!current?.teamId) return { error: 'Nook not found.' };
+    try {
+      await manageNookMember(user.id, current.teamId, data.memberId);
+      return { success: 'Nook member removed successfully.' };
+    } catch (error) {
+      if (error instanceof NookError) return { error: error.message };
+      throw error;
     }
-
-    await db
-      .delete(teamMembers)
-      .where(
-        and(
-          eq(teamMembers.id, memberId),
-          eq(teamMembers.teamId, userWithTeam.teamId)
-        )
-      );
-
-    await logActivity(
-      userWithTeam.teamId,
-      user.id,
-      ActivityType.REMOVE_TEAM_MEMBER
-    );
-
-    return { success: 'Team member removed successfully' };
   }
 );
 
 const inviteTeamMemberSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z.string().trim().email('Invalid email address').max(255),
   role: z.enum(['member', 'owner'])
 });
 
 export const inviteTeamMember = validatedActionWithUser(
   inviteTeamMemberSchema,
   async (data, _, user) => {
-    const { email, role } = data;
-    const userWithTeam = await getUserWithTeam(user.id);
-
-    if (!userWithTeam?.teamId) {
-      return { error: 'User is not part of a team' };
+    const current = await getUserWithTeam(user.id);
+    if (!current?.teamId) return { error: 'Nook not found.' };
+    try {
+      await inviteNookMember(user.id, current.teamId, data.email, data.role);
+      return { success: 'Nook invitation created successfully.' };
+    } catch (error) {
+      if (error instanceof NookError) return { error: error.message };
+      throw error;
     }
-
-    const existingMember = await db
-      .select()
-      .from(users)
-      .leftJoin(teamMembers, eq(users.id, teamMembers.userId))
-      .where(
-        and(eq(users.email, email), eq(teamMembers.teamId, userWithTeam.teamId))
-      )
-      .limit(1);
-
-    if (existingMember.length > 0) {
-      return { error: 'User is already a member of this team' };
-    }
-
-    // Check if there's an existing invitation
-    const existingInvitation = await db
-      .select()
-      .from(invitations)
-      .where(
-        and(
-          eq(invitations.email, email),
-          eq(invitations.teamId, userWithTeam.teamId),
-          eq(invitations.status, 'pending')
-        )
-      )
-      .limit(1);
-
-    if (existingInvitation.length > 0) {
-      return { error: 'An invitation has already been sent to this email' };
-    }
-
-    // Create a new invitation
-    await db.insert(invitations).values({
-      teamId: userWithTeam.teamId,
-      email,
-      role,
-      invitedBy: user.id,
-      status: 'pending'
-    });
-
-    await logActivity(
-      userWithTeam.teamId,
-      user.id,
-      ActivityType.INVITE_TEAM_MEMBER
-    );
-
-    // TODO: Send invitation email and include ?inviteId={id} to sign-up URL
-    // await sendInvitationEmail(email, userWithTeam.team.name, role)
-
-    return { success: 'Invitation sent successfully' };
   }
 );
