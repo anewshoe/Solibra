@@ -58,7 +58,7 @@ test('failed sign-in never returns passwords; successful sign-in retains its exi
     assert.equal(result.email,user.email); assert.match(result.error,/Invalid email or password/); assert.equal(Object.hasOwn(result,'password'), false);
   }
   h.password(true);
-  await assert.rejects(h.actions.signIn({},input), error => error.destination === '/dashboard');
+  await assert.rejects(h.actions.signIn({},input), error => error.destination === '/');
   assert.deepEqual(h.sessions,[user.id]);
 });
 
@@ -143,6 +143,14 @@ test('profile renders real scoped membership roles, missing-name setup and no fi
   })('@/components/solibra/profile').Profile;
   const html = renderToStaticMarkup(React.createElement(Profile,{viewerId:5}));
   assert.ok(html.includes('Complete Profile')); assert.ok(html.includes('Sunday table')); assert.ok(html.includes('Member'));
-  assert.ok(html.includes('/profile/edit')); assert.ok(html.includes('/dashboard/general')); assert.ok(html.includes('/dashboard/security'));
+  assert.ok(html.includes('Edit Profile')); assert.ok(!html.includes('/dashboard/general')); assert.ok(!html.includes('/dashboard/security'));
   assert.ok(!html.includes('/circles/42')); assert.ok(!html.includes('PRIVATE_HASH'));
+});
+
+test('password update and deletion failures never reflect submitted secrets', async () => {
+ const h=actionHarness();
+ const passwordResult=await h.actions.updatePassword({},form({currentPassword:'secret-old',newPassword:'secret-new',confirmPassword:'secret-new'}));
+ assert.ok(passwordResult.error); assert.deepEqual(Object.keys(passwordResult),['error']);
+ const deletion=await h.actions.deleteAccount({},form({password:'secret-old'}));
+ assert.ok(deletion.error); assert.deepEqual(Object.keys(deletion),['error']);
 });

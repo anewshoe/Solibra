@@ -314,3 +314,4 @@ html:has(.solibra)::-webkit-scrollbar { display: none; }
 }
 
 .sol-desktop-nav [aria-current="page"] { color: var(--sol-cream); text-decoration: underline; text-underline-offset: 8px; }
+.sol-header .official-logo { width: 160px; height: auto; }

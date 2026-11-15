@@ -45,3 +45,17 @@
   .account-sun { display: grid; place-items: center; width: 180px; height: 130px; margin-top: 32px; background: var(--sol-rose); border: 2px solid var(--sol-subtle); border-radius: 50% 50% 12px 12px / 70% 70% 12px 12px; }
   .account-profile-grid { grid-template-columns: minmax(0, .8fr) minmax(0, 1.4fr); }
 }
+.official-logo { display: block; width: 170px; height: auto; object-fit: contain; }
+.auth-brand { display: block; margin-bottom: 28px; }
+.auth-brand .official-logo { width: min(100%, 420px); }
+.account-auth-grid { margin-top: 32px; }
+.account-switch { flex-direction: column; text-align: center; gap: 16px; }
+.account-form[data-mode="setup"] { align-items: center; text-align: center; }
+.account-form[data-mode="setup"] > input:not([type="hidden"]) { max-width: 400px; }
+.account-card:has([data-mode="setup"]) > h2 { text-align: center; }
+.inline-account-editor { animation: account-reveal 250ms ease-out; display: grid; gap: 24px; }
+.inline-account-editor summary { cursor: pointer; padding-block: 16px; }
+.account-danger { border-top: 1px solid var(--sol-subtle); }
+@keyframes account-reveal { from { opacity: .3; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media(max-width:899px) { .auth-brand .official-logo { width: min(100%, 260px); margin-inline: auto; } }
+@media(prefers-reduced-motion:reduce) { .inline-account-editor { animation: none; } }

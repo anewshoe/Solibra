@@ -10,6 +10,7 @@ import type { Nook, NookListResponse } from '@/lib/nooks/types';
 import { signOut } from '@/app/(login)/actions';
 import { AccountAvatar } from './account-avatar';
 import { AccountInformationForm } from './account-form';
+import { ProfileSecurity } from './profile-security';
 import { NookMemberProfiles } from './member-profile';
 
 export function AccountEditor({ mode, viewerId }: { mode: 'setup' | 'edit' | 'settings'; viewerId: number }) {
@@ -23,6 +24,7 @@ export function AccountEditor({ mode, viewerId }: { mode: 'setup' | 'edit' | 'se
 export function Profile({ viewerId }: { viewerId: number }) {
   const { data: user, error: userError, isLoading, mutate: refreshUser } = useSWR<AccountProfile | null>(['/api/user', viewerId], ([url]: [string, number]) => fetchAccountData<AccountProfile | null>(url));
   const { data, error, mutate: refreshNooks } = useSWR<NookListResponse>(user ? ['/api/nooks', viewerId] : null, ([url]: [string, number]) => fetchAccountData<NookListResponse>(url));
+  const [editing, setEditing] = useState(false);
   const [selected, setSelected] = useState<Nook | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState('');
@@ -36,7 +38,7 @@ export function Profile({ viewerId }: { viewerId: number }) {
   if (userError) return <div role="alert"><p>Couldn’t load your profile.</p><button className="sol-outline-button" onClick={() => void refreshUser()}>Try again</button></div>;
   if (isLoading || user === undefined) return <p role="status">Loading your profile…</p>;
   if (!user) return <p>Your session has ended. <Link href="/sign-in">Sign in</Link></p>;
-  return <div className="account-profile-grid"><section className="account-card"><AccountAvatar name={user.name} email={user.email} /><h2>{user.name?.trim() || 'A name for your stories'}</h2><p className="account-email">{user.email}</p>{!user.name?.trim() && <Link className="sol-outline-button" href="/profile/setup">Complete Profile</Link>}<Link href="/profile/edit" className="sol-button sol-outline-button">Edit Profile</Link><Link href="/dashboard/general" className="sol-outline-button">Account Settings</Link><Link href="/dashboard/security" className="sol-text-link">Password & Security</Link><button className="sol-text-link" onClick={() => void logout()} disabled={signingOut}>{signingOut ? 'Signing out…' : 'Sign Out'}</button>{signOutError && <p role="alert">{signOutError}</p>}</section>
+  return <div className="account-profile-grid"><section className="account-card"><AccountAvatar name={user.name} email={user.email} /><h2>{user.name?.trim() || 'A name for your stories'}</h2><p className="account-email">{user.email}</p>{!user.name?.trim() && <Link className="sol-outline-button" href="/profile/setup">Complete Profile</Link>}<button className="sol-button sol-outline-button" onClick={() => setEditing(true)}>Edit Profile</button>{editing && <div className="inline-account-editor"><AccountInformationForm user={user} mode="settings" onCancel={() => setEditing(false)} /><ProfileSecurity /></div>}<button className="sol-text-link" onClick={() => void logout()} disabled={signingOut}>{signingOut ? 'Signing out…' : 'Sign Out'}</button>{signOutError && <p role="alert">{signOutError}</p>}</section>
     <div className="account-nooks-column"><section className="account-card"><h2>Your Nooks</h2>{error ? <div role="alert"><p>Your Nooks couldn’t be loaded.</p><button className="sol-text-link" onClick={() => void refreshNooks()}>Try again</button></div> : !data ? <p role="status">Loading your Nooks…</p> : data.nooks.length ? <><p className="account-help">Your real memberships. Opening these Nooks in the Library is not connected yet.</p><ul className="account-nook-list">{data.nooks.map(nook => <li key={nook.id}><div><h3>{nook.name}</h3><p>{nook.description || 'A little space for your shared memories.'}</p><small>{nook.role === 'owner' ? 'Owner' : 'Member'}</small></div><button className="sol-outline-button" onClick={() => setSelected(nook)}>View members<span className="sr-only"> of {nook.name}</span></button></li>)}</ul></> : <p>You don’t belong to any Nooks yet.</p>}<Link className="sol-text-link" href="/nooks/new">Create a Nook →</Link></section>
     {selected && data?.nooks.some(nook => nook.id === selected.id) && <NookMemberProfiles key={selected.id} nook={selected} viewerId={viewerId} onClose={() => setSelected(null)} />}</div>
   </div>;

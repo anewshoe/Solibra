@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useActionState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Mascot } from '@/components/solibra/shell';
+import { BrandLogo } from '@/components/solibra/brand-logo';
 import { signIn, signUp } from './actions';
 import type { ActionState } from '@/lib/auth/middleware';
 
@@ -15,8 +15,8 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
   // No submitted password is echoed from the action or repopulated on failure.
   useEffect(() => { if (state.error && passwordRef.current) passwordRef.current.value = ''; }, [state]);
   return <main className="account-auth" id="main-content">
-    <Link href="/" className="sol-logo" aria-label="Solibra Library"><Mascot /><span>solibra</span></Link>
-    <div className="account-auth-grid"><section className="account-welcome"><p className="sol-eyebrow">A HOME FOR YOUR SHARED STORIES</p><h1>{mode === 'signin' ? 'Welcome back to your little library.' : 'Every story starts somewhere.'}</h1><p>A little space for the people, moments, and voices you want to keep close.</p><div className="account-sun" aria-hidden="true"><Mascot listening /></div></section>
+
+    <div className="account-auth-grid"><section className="account-welcome"><Link href="/" className="auth-brand" aria-label="Solibra Library"><BrandLogo /></Link><h1>{mode === 'signin' ? 'Welcome back to your little library.' : 'Every story starts somewhere.'}</h1><p>A little space for the people, moments, and voices you want to keep close.</p></section>
     <section className="account-card" aria-label={mode === 'signin' ? 'Sign In' : 'Create Account'}><h2>{mode === 'signin' ? 'Come on in.' : 'Make yourself at home.'}</h2>
       <form action={formAction} className="account-form">
         <input type="hidden" name="inviteId" value={inviteId || ''} />
@@ -27,7 +27,7 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
         <Button className="sol-button" type="submit" disabled={pending}>{pending ? 'Please wait…' : mode === 'signin' ? 'Sign In' : 'Create Account'}</Button>
         {pending && <p role="status">{mode === 'signin' ? 'Signing in…' : 'Creating your account…'}</p>}
       </form>
-      <div className="account-switch"><p>{mode === 'signin' ? 'New to Solibra?' : 'Already have an account?'}</p><Link className="sol-text-link" href={`${mode === 'signin' ? '/sign-up' : '/sign-in'}${inviteId ? `?inviteId=${encodeURIComponent(inviteId)}` : ''}`}>{mode === 'signin' ? 'Create an account' : 'Sign in'}</Link></div>
+      <div className="account-switch"><p>{mode === 'signin' ? 'New to Solibra?' : 'Already have an account?'}</p><Link className="sol-outline-button" href={`${mode === 'signin' ? '/sign-up' : '/sign-in'}${inviteId ? `?inviteId=${encodeURIComponent(inviteId)}` : ''}`}>{mode === 'signin' ? 'Create an Account' : 'Sign In'}</Link></div>
     </section></div>
   </main>;
 }
