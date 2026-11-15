@@ -286,7 +286,7 @@ test('owner cannot target a membership from a different Nook', async () => {
 
 test('same-origin mutations pass; local hostname normalization and forged proxy headers cannot bypass the guard', async () => {
   currentUser = { id: 1 };
-  for (const url of ['http://localhost:3000/api/nooks', 'http://127.0.0.1:3000/api/nooks', 'https://solibra.example/api/nooks', 'https://preview.vercel.app/api/nooks/10/invitations']) {
+  for (const url of ['http://localhost:3000/api/nooks', 'http://127.0.0.1:3000/api/nooks', 'https://solibra.example/api/nooks', 'https://preview.vercel.app/api/nooks/10/invitations', 'https://www.solibra.club/api/nooks', 'https://solibra.club/api/nooks', 'https://solibra-two.vercel.app/api/nooks']) {
     let invoked = false;
     const result = await nookResponse(new Request(url, { method: 'POST', headers: { origin: new URL(url).origin, host: new URL(url).host } }), async () => { invoked = true; return { ok: true }; }, 201);
     assert.equal(result.status, 201); assert.equal(invoked, true);
@@ -303,6 +303,16 @@ test('same-origin mutations pass; local hostname normalization and forged proxy 
     const response = await nookResponse(new Request(`http://localhost:3000${path}`, { method: 'POST', headers: { origin: 'http://localhost:3000' } }), async () => { throw new Error('Must not run'); });
     assert.equal(response.status, 401);
   }
+});
+
+test('custom-domain writes remain same-origin and cannot be enabled by forged forwarding headers',async()=>{
+ currentUser={id:1};
+ for(const origin of ['https://solibra.club','https://solibra-two.vercel.app','https://evil.example','http://www.solibra.club']){
+  let invoked=false;
+  const response=await nookResponse(new Request('https://www.solibra.club/api/nooks',{method:'POST',headers:{origin,host:'www.solibra.club','x-forwarded-host':origin.replace(/^https?:\/\//,''),'x-forwarded-proto':'https'}}),async()=>{invoked=true;return {};});
+  assert.equal(response.status,403);assert.equal(invoked,false);
+ }
+ currentUser=null;
 });
 
 test('same-origin creation and invitation handlers still validate malformed requests before writes', async () => {
