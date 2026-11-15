@@ -14,8 +14,7 @@ import { MemberProfileCard } from './member-profile';
 import { Bookshelf } from './bookshelf';
 import { InvitationQueueFields, useInvitationQueue } from './invitation-queue';
 import { DesignIcon } from './shell';
-import { artifactMediaPath, memoryTypeLabel, realMemoryHref } from '@/lib/frontend/real-memories';
-import { PrivatePhoto } from './photo-attachment';
+import { MemoryBook } from './memory-book';
 import { SolibraEmote } from './solibra-emote';
 
 function OwnerInvitations({ nookId, viewerId }: { nookId:number; viewerId:number }) {
@@ -54,6 +53,6 @@ export function RealNook({ nookId, viewerId }: { nookId:number; viewerId:number 
     {members.data&&!members.error&&<details className="real-member-details"><summary>View Nook member profiles</summary>{actualMembers.map(member=><MemberProfileCard key={member.id} membership={member} nookName={nook.name}/>)}</details>}
     {inviteOpen&&nook.role==='owner'&&<OwnerInvitations key={nookId} nookId={nookId} viewerId={viewerId}/>}
     <div className="memory-toolbar"><label className="sol-search"><DesignIcon name="search"/><span className="sr-only">Search this Nook</span><input id="memory-search" type="search" value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search this Nook…"/></label><div className="memory-filters" role="group" aria-label="Filter memories by type">{(['all','photo','audio','letter','text','other'] as const).map(type=><button key={type} aria-pressed={category===type} onClick={()=>setCategory(type)}>{type==='all'?'All memories':type[0].toUpperCase()+type.slice(1)}</button>)}</div><label><span className="sr-only">Sort memories</span><select value={newest?'newest':'oldest'} onChange={event=>setNewest(event.target.value==='newest')}><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label></div>
-    <Bookshelf nookName={nook.name}>{artifacts.error?<NookRequestState error={artifacts.error} retry={()=>void artifacts.mutate()}/>:!artifacts.data?<p role="status">Loading memories…</p>:shown.length?<div className="real-artifact-grid">{shown.map(item=><Link href={realMemoryHref(nookId,item.id)} key={item.id} className="real-artifact" data-artifact-id={item.id}>{item.type==='photo'&&item.mediaStorageKey&&<PrivatePhoto key={item.updatedAt} src={`${artifactMediaPath(item)}?v=${encodeURIComponent(item.updatedAt)}`} title={item.title} thumbnail/>}<p className="sol-eyebrow">{memoryTypeLabel(item.type)}</p><h3>{item.title}</h3>{item.description&&<p className="real-artifact-excerpt">{item.description}</p>}<small>Added {new Date(item.createdAt).toLocaleDateString('en-US',{timeZone:'UTC'})}</small><span>View memory →</span></Link>)}</div>:<div className="real-empty-shelf">{query||category!=='all'?<p>No memories match this search or filter.</p>:<><SolibraEmote variant="reading" size={88}/><p>Your shelf is ready for the memories you’ll collect together.</p></>}</div>}</Bookshelf>
+    <Bookshelf nookName={nook.name}>{artifacts.error?<NookRequestState error={artifacts.error} retry={()=>void artifacts.mutate()}/>:!artifacts.data?<p role="status">Loading memories…</p>:shown.length?<div className="real-book-grid">{shown.map(item=><MemoryBook key={item.id} artifact={item}/>)}</div>:<div className="real-empty-shelf">{query||category!=='all'?<p>No memories match this search or filter.</p>:<><SolibraEmote variant="reading" size={88}/><p>Your shelf is ready for the memories you’ll collect together.</p></>}</div>}</Bookshelf>
   </main>;
 }

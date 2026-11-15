@@ -56,10 +56,11 @@ function AccountMenu() {
   );
 }
 
-export function SolibraShell({ children }: { children: React.ReactNode }) {
+export function SolibraShell({ children, signedOut = false }: { children: React.ReactNode; signedOut?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const { data: account } = useSWR<User | null>('/api/user', (url: string) => fetch(url).then(res => res.json()));
+  const publicHome = signedOut && pathname === '/';
   const inNook = pathname.startsWith('/circles/');
   const inMessages = pathname === '/messages' || pathname.startsWith('/messages/');
   const inDemo = pathname.startsWith('/demo');
@@ -70,7 +71,7 @@ export function SolibraShell({ children }: { children: React.ReactNode }) {
   return (
     <NoticeContext.Provider value={showNotice}>
       <a href="#main-content" className="sol-skip">Skip to content</a>
-      <header className={`sol-header ${inNook ? 'sol-header-nook' : ''} ${pathname.startsWith('/messages/') ? 'sol-header-conversation' : ''}`}>
+      {!publicHome && <header className={`sol-header ${inNook ? 'sol-header-nook' : ''} ${pathname.startsWith('/messages/') ? 'sol-header-conversation' : ''}`}>
         <div className="sol-header-inner">
           <Link href="/" className="sol-logo" aria-label="Solibra Library"><BrandLogo /></Link>
           <nav aria-label="Main navigation" className="sol-desktop-nav">
@@ -83,14 +84,14 @@ export function SolibraShell({ children }: { children: React.ReactNode }) {
             <div className="sol-desktop-account"><Suspense fallback={<span className="sol-account" />}><AccountMenu /></Suspense></div>
           </div>
         </div>
-      </header>
+      </header>}
       {children}
       <footer className="sol-footer"><p>A private place for the people who matter.</p><p>Your memories stay yours. Always.</p></footer>
-      <nav aria-label="Mobile navigation" className="sol-bottom-nav">
+      {!publicHome && <nav aria-label="Mobile navigation" className="sol-bottom-nav">
         <Link href="/" aria-current={(pathname === '/' || pathname === '/nooks/new' || inNook || inDemo) ? 'page' : undefined}><DesignIcon name="library" />Library</Link>
         <Link href="/messages" aria-current={inMessages ? 'page' : undefined}><DesignIcon name="messages" />Messages</Link>
         <Link href={account ? "/profile" : "/sign-in"} aria-current={pathname === '/profile' || pathname.startsWith('/profile/') ? 'page' : undefined}><DesignIcon name="user" />You</Link>
-      </nav>
+      </nav>}
       <Dialog.Root open={!!notice} onOpenChange={(open) => { if (!open) setNotice(null); }}>
           <Dialog.Overlay className="sol-dialog-overlay" />
           <Dialog.Content className="sol-dialog">

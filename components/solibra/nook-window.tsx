@@ -6,8 +6,9 @@ import { ArrowRight } from 'lucide-react';
 import type { Nook } from '@/lib/nooks/types';
 import type { SampleCircle } from '@/lib/fixtures/library';
 import { NookMemorabilia } from './nook-memorabilia';
+import { WindowMemories } from './window-memories';
 
-export function NookWindow({ circle, nook, initialOpen = false }: ({ circle: SampleCircle; nook?: never } | { nook: Nook; circle?: never }) & { initialOpen?: boolean }) {
+export function NookWindow({ circle, nook, initialOpen = false, viewerId }: ({ circle: SampleCircle; nook?: never } | { nook: Nook; circle?: never }) & { initialOpen?: boolean; viewerId?: number }) {
   const title = nook ? nook.name : circle!.title;
   const id = nook ? nook.id : circle!.id;
   const [open, setOpen] = useState(initialOpen);
@@ -27,7 +28,7 @@ export function NookWindow({ circle, nook, initialOpen = false }: ({ circle: Sam
       >
         <span className="nook-arch" aria-hidden="true">
           <span className="nook-blush-border" />
-          <span className="nook-interior" id={interiorId}>{circle ? <NookMemorabilia collection={circle.collection} /> : <span className="real-window-shelves"><i /><i /></span>}</span>
+          <span className="nook-interior" id={interiorId}>{circle ? <NookMemorabilia collection={circle.collection} /> : <WindowMemories nookId={nook!.id} viewerId={viewerId} open={open}/>}</span>
           <span className="nook-door-space">
             {(['left', 'right'] as const).map((side) => (
               <span className={`nook-door nook-door-${side}`} key={side}>
