@@ -1,125 +1,153 @@
-
 # Solibra
 
-**Preserving memories, connecting generations.**
+**A little library. A lifetime together.**
 
-Solibra is a collaborative digital library designed to help families, friends, and communities preserve and share the stories that define them. From cherished photographs and traditional recipes to personal stories and cultural traditions, Solibra provides a centralized space to document memories and pass them on to future generations.
+*A private, multilingual space for the memories, stories, and voices that connect us.*
 
-Built for **SanD Hacks 2026**, Solibra aims to make cultural preservation more accessible, personal, and collaborative.
+[**Explore Solibra**](https://solibra-two.vercel.app/) · [**Visit the demo library**](https://solibra-two.vercel.app/demo) · [**GitHub**](https://github.com/anewshoe/Solibra)
 
-Demo: 
+![Solibra logo](public/solibra/solibra-logo.png)
+
+## About Solibra
+
+Some of the most meaningful stories aren't written down. They live in a grandparent's voice, a friend's recollection of the same afternoon, or a photograph whose story only a few people remember.
+
+**Solibra** is a collaborative digital memory library built to give those moments a home. Create private spaces called **Nooks** for your family, friends, or community; collect memories together; and invite others to share their own perspectives. With voice recording, transcription, and translation, stories can be preserved in the language they were told and understood across languages and generations.
+
+Created at **San D Hacks 2026**.
 
 ## Features
 
-Solibra is being developed around the following features:
+- **Private Nooks:** Create shared collections for your people, manage members, and accept invitations inside the app.
+- **A bookshelf of memories:** Save photographs, written memories, letters, and voice recordings. Browse each Nook through book-shaped keepsakes and pastel-colored shelves.
+- **Many points of view:** Add written or recorded perspectives to an existing memory, so one moment can hold more than one person's story.
+- **Voices in their original language:** Record and privately store audio, generate a saved transcript with ElevenLabs, and translate it with Gemini into supported languages, including English, Spanish, French, and Telugu.
+- **Translations that last:** Return to saved transcripts and translations later, or request another supported translation without recording again.
+- **Conversations for each Nook:** Share messages and link memories in a private group conversation.
+- **A look inside:** Explore a separate demo library with fictional sample stories, without needing access to anyone's private Nooks.
 
-- **Digital Memory Library:** Store and organize photographs, recipes, stories, and traditions in one place.
-- **Collaborative Collections:** Allow family members and friends to contribute to shared libraries.
-- **Cultural Preservation:** Document meaningful traditions, customs, and personal experiences for future generations.
-- **User Authentication:** Secure account creation and login to manage personal and shared content.
-- **Personalized Dashboard:** Access and manage saved memories and collections through an intuitive interface.
-- **Memory Organization:** Categorize content to make memories easier to browse and rediscover.
+## How it works
 
-## Tech Stack
+1. **Create a Nook.** Give a shared library a name and invite the people you want to remember with.
+2. **Add a memory.** Save a photograph, a written story, a letter, or a voice recording.
+3. **Bring in other perspectives.** Members can contribute their own words or recordings to the same memory.
+4. **Revisit and understand.** Listen to original voices, read transcripts and translations, and continue the conversation together.
 
-- **Framework:** [Next.js](https://nextjs.org/)
-- **Language:** TypeScript
-- **Frontend:** React, Tailwind CSS
-- **Database:** [PostgreSQL](https://www.postgresql.org/)
-- **ORM:** [Drizzle](https://orm.drizzle.team/)
-- **UI Components:** [shadcn/ui](https://ui.shadcn.com/)
-- **Authentication:** JWT-based authentication
+## Built with
 
-## Getting Started
+| Layer | Technologies |
+| --- | --- |
+| Application | Next.js, React, TypeScript |
+| Interface | Tailwind CSS, Radix UI, shadcn/ui, Lucide, custom Solibra components and artwork |
+| Data | PostgreSQL (Neon), Drizzle ORM |
+| Authentication | Email/password accounts, bcrypt, JWT session cookies |
+| Private media | Neon Object Storage (S3-compatible), authenticated media routes |
+| Speech-to-text | ElevenLabs Scribe |
+| Translation | Google Gemini |
+| Data fetching | SWR |
+| Deployment | Vercel |
 
-### Prerequisites
+## Getting started
 
-Make sure you have the following installed:
+### Requirements
 
-- Node.js
-- pnpm
-- Git
-- PostgreSQL database access
+- Node.js and [pnpm](https://pnpm.io/)
+- A PostgreSQL database (or Docker for local PostgreSQL setup)
+- Optional, for full photo/audio and AI functionality: private object storage and the respective provider API keys
 
-### Installation
-
-Clone the repository:
+### 1. Install
 
 ```bash
 git clone https://github.com/anewshoe/Solibra.git
 cd Solibra
-```
-
-Install dependencies:
-
-```bash
 pnpm install
 ```
 
-### Environment Setup
+### 2. Configure the environment
 
-Run the included database setup script:
+Run the interactive setup script to create `.env`, or configure it manually using `.env.example` as a reference:
 
 ```bash
 pnpm db:setup
 ```
 
-This creates a `.env` file if one does not exist. Existing credentials are preserved.
+At minimum, core account/database functionality uses:
 
-Configure the required environment variables, including your PostgreSQL connection string and authentication secret.
+```dotenv
+POSTGRES_URL=postgresql://...
+DATABASE_URL=postgresql://...
+BASE_URL=http://localhost:3000
+AUTH_SECRET=your-secret
+```
 
-Solibra is free. Only `POSTGRES_URL` (including your Neon connection string), `BASE_URL`, and `AUTH_SECRET` are needed.
+`POSTGRES_URL` is used by the app; `DATABASE_URL` is used by the Drizzle migration configuration. Point both at the **same intended development database** if you run migrations. The setup script creates only the core `.env` fields, so add `DATABASE_URL` and any optional integration keys yourself.
 
-### Database Setup
+To enable private photo/audio storage and AI features, also configure the relevant server-side variables from `.env.example`:
 
-Review generated SQL before applying migrations. For an existing database, keep the applied migration history and use the incremental migration; do not reset or recreate the database. The pending migration removes only obsolete payment columns and their unique constraints from `teams`. It preserves users, teams, memberships, invitations, and activity logs.
+```dotenv
+AWS_ENDPOINT_URL_S3=
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_REGION=us-east-2
+SOLIBRA_MEDIA_BUCKET=solibra-private
 
-After approving the SQL, run database migrations:
+ELEVENLABS_API_KEY=
+GEMINI_API_KEY=
+# GEMINI_TRANSLATION_MODEL=  # optional
+```
+
+Keep all credentials private. Browser uploads require CORS permissions for your local/deployed app origin while the storage bucket remains private. See [private media setup](docs/private-media.md) and [persistent voice documentation](docs/persistent-voice.md).
+
+### 3. Prepare the database
+
+Review the existing migrations before applying them, and use a development database rather than resetting or modifying an existing production database:
 
 ```bash
 pnpm db:migrate
 ```
 
-For a fresh development database only, optionally seed sample data (do not seed your existing Neon database):
-
-```bash
-pnpm db:seed
-```
-
-### Running Locally
-
-Start the development server:
+### 4. Run Solibra
 
 ```bash
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
+Visit [http://localhost:3000](http://localhost:3000). You can also explore the fictional demo at `/demo`.
 
-## Development
+## Project structure
 
-Solibra is an ongoing project developed as part of SanD Hacks 2026.
+```text
+app/(library)/          Library, Nooks, memories, messages, and demo pages
+app/api/nooks/          Authenticated Nook, memory, message, and media routes
+components/solibra/    Solibra UI, bookshelves, recording, and playback
+lib/memories/           Memory and contribution contracts/services
+lib/media/              Private media upload and retrieval
+lib/voice/              Speech, translation, and persistence
+lib/db/                 Drizzle schema, queries, and migrations
+docs/                   Integration and implementation details
+tests/                  Automated regression tests
+```
 
-To contribute changes:
+## Development checks
 
-1. Create a new branch for your feature.
-2. Implement and test your changes locally.
-3. Commit your changes with a descriptive message.
-4. Push your branch to GitHub.
-5. Open a pull request for review.
+```bash
+pnpm exec tsc --noEmit
+node --test tests/*.test.cjs
+pnpm build
+```
 
-## Our Mission
+Some workflows require a configured database, storage bucket, and provider credentials. Automated mocks do not replace testing the complete browser recording/upload/translation flow against a development environment.
 
-Memories are more than photographs or written records. They represent the people, cultures, and experiences that shape our identities.
+## Privacy and project notes
 
-Unfortunately, many personal stories, family recipes, and cultural traditions are lost over time when they are not documented or shared.
+- Real Nooks, memories, messages, and saved media are scoped to authenticated membership. Demo content is separate and fictional.
+- Audio is stored privately and served through authenticated application routes; storage keys are not public download links.
+- Inviting someone creates an **in-app invitation**; Solibra does not currently send invitation emails.
+- Processing and translation depend on configured third-party services, their quotas, and network availability.
+- Solibra is a hackathon project and an evolving prototype, not an end-to-end encrypted archival service.
 
-**Solibra aims to bridge this gap by making memory preservation a shared experience.** By giving communities a space to collaboratively document their histories, we hope to help meaningful stories survive across generations.
+## Acknowledgments and attribution
 
-## Hackathon
+Built for **San D Hacks 2026**, with a focus on preserving the small moments that make people feel close—even across languages and generations.
 
-Developed for **SanD Hacks 2026**.
-
-## Repository
-
-[github.com/anewshoe/Solibra](https://github.com/anewshoe/Solibra)
+Some initial authentication and database scaffolding was adapted from [Vercel's Next.js SaaS Starter](https://github.com/nextjs/saas-starter), which is MIT-licensed. Solibra's library experience, Nooks, memory features, multilingual voice workflows, and visual identity were developed for this project. See [third-party notices](THIRD_PARTY_NOTICES.md) for the retained upstream copyright and license notice.

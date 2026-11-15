@@ -46,3 +46,28 @@
 .real-message-artifact a { text-decoration: underline; text-underline-offset: 3px; }
 @media(max-width: 359px) { .real-memory-form { padding: 14px; } .memory-type-options { flex-direction: column; } .real-memory-actions { align-items: stretch; flex-direction: column; } }
 @media(prefers-reduced-motion: reduce) { .real-artifact { transition: none; } }
+
+.real-recorder { margin-top: 24px; }
+.saved-voice-results { display: grid; gap: 16px; margin-top: 16px; }
+.saved-voice-results label { display: grid; gap: 8px; }
+.saved-voice select, .real-recorder select { width: 100%; min-width: 0; min-height: 44px; padding: 10px; border: 1px solid var(--sol-subtle); border-radius: 12px; background: var(--sol-inset); color: var(--sol-cream); }
+.real-recorder .voice-recording-status { flex-wrap: wrap; gap: 12px; }
+.real-recorder .real-memory-actions { margin-top: 16px; }
+.saved-voice { min-width: 0; overflow-wrap: anywhere; }
+
+.voice-steps { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 16px; color: var(--sol-secondary); font-size: 13px; }
+.voice-steps li { padding-bottom: 6px; border-bottom: 2px solid transparent; }
+.voice-steps [aria-current="step"] { color: var(--sol-action); border-color: var(--sol-action); font-weight: 600; }
+.voice-success { color: var(--sol-action); font-weight: 600; font-size: 20px; }
+.voice-recovery > * + * { margin-top: 12px; }
+.voice-recovery summary { cursor: pointer; min-height: 44px; padding-block: 12px; }
+.voice-recovery a { display: block; text-decoration: underline; }
+.voice-recovery button { margin: 8px 8px 0 0; }
+.perspective-choices { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.perspective-choices [aria-pressed="true"] { background: var(--sol-rose); border-color: var(--sol-action); }
+.saved-voice h5 { font-weight: 600; color: var(--sol-action); }
+.voice-language-request { padding: 16px; border: 1px solid var(--sol-subtle); border-radius: 14px; }
+.voice-language-request > * + * { margin-top: 12px; }
+.voice-availability { font-size: 13px; color: var(--sol-secondary); }
+.original-voice-memory { padding: 24px; background: var(--sol-raised); border: 1px solid var(--sol-subtle); border-radius: 20px; }
+.real-memory-details [hidden], .real-memory-create [hidden] { display: none !important; }

@@ -238,3 +238,11 @@
 .real-conversation .message-composer [role="alert"] { padding-block: 8px; font-size: 13px; }
 .real-conversation button:disabled { opacity: .6; }
 @media(max-width:359px) { .real-conversation-symbol { display: none; } .real-open-nook { max-width: 44px; } }
+
+.memory-request-toggle { margin-bottom: 8px; min-height: 44px; }
+.memory-request-picker { padding: 12px; margin-bottom: 12px; background: var(--sol-inset); border: 1px solid var(--sol-subtle); border-radius: 14px; }
+.memory-request-picker label { display: grid; gap: 8px; }
+.memory-request-picker select { width: 100%; min-width: 0; min-height: 44px; padding: 8px; color: var(--sol-cream); background: var(--sol-raised); border: 1px solid var(--sol-subtle); border-radius: 10px; }
+.memory-request-picker p, .linked-memory-draft { font-size: 13px; line-height: 1.5; }
+.memory-request-picker p { margin-top: 8px; }
+.linked-memory-draft { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; margin-bottom: 10px; overflow-wrap: anywhere; }

@@ -1,3 +1,11 @@
+# Third-party notices
+
+## Vercel Next.js SaaS Starter
+
+Solibra reuses portions of authentication and database infrastructure adapted from [Vercel's Next.js SaaS Starter](https://github.com/nextjs/saas-starter). The following copyright and MIT license notice applies to that reused upstream code. It does not declare Solibra's original application code, branding, or artwork MIT-licensed.
+
+---
+
 MIT License
 
 Copyright (c) 2025 Vercel
