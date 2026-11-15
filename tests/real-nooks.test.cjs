@@ -136,3 +136,32 @@ test('bookshelf distinguishes initial loading, cached revalidation, empty and de
   const html=render(Real,{nookId:42,viewerId:5});assert.ok(html.includes(expected));assert.ok(!html.includes('PRIVATE STALE'));if(resource.data)assert.ok(!html.includes('memory-book sol-skeleton'));
  }
 });
+
+test('409 messages are invitation-specific only for invitation acceptance and never expose server internals',async()=>{
+ const original=global.fetch;const api=loader()('@/lib/frontend/nook-api');
+ global.fetch=async()=>Response.json({error:{message:'SQL SECRET 42'}},{status:409});
+ try {
+  await assert.rejects(api.nookRequest('/api/nooks/42','PATCH',{name:'New'}),error=>error.status===409&&error.message.includes('conflicts')&&!error.message.includes('invitation')&&!error.message.includes('SECRET'));
+  await assert.rejects(api.acceptInvitation(42,7),error=>error.message.includes('invitation is no longer pending'));
+ }finally{global.fetch=original;}
+});
+
+test('owner Nook editing validates, retains failed drafts, prevents duplicate saves and excludes members',async()=>{
+ let calls=0,resolve;let fail=true;const props={nook:{...first,doorColor:'pink'},save:async data=>{calls++;assert.deepEqual(data,{name:'New name',doorColor:'blue'});if(fail)throw new Error('Offline');return new Promise(done=>resolve=()=>done({nook:{...first,...data}}));}};
+ const h=harness(null,props);h.bind(loader({react:h.react})('@/components/solibra/nook-settings').NookSettings);
+ const open=()=>h.tree().find(n=>n.type==='button'&&n.props.children==='Edit Nook').props.onClick();open();
+ const name=()=>h.tree().find(n=>n.type==='input'&&n.props.required);
+ name().props.onChange({target:{value:' '}});await h.tree().find(n=>n.type==='form').props.onSubmit({preventDefault(){}});assert.equal(calls,0);
+ name().props.onChange({target:{value:'New name'}});h.tree().find(n=>n.type==='input'&&n.props.value==='blue').props.onChange();
+ await h.tree().find(n=>n.type==='form').props.onSubmit({preventDefault(){}});assert.equal(name().props.value,'New name');assert.ok(h.tree().some(n=>n.props?.role==='alert'));
+ fail=false;const send=h.tree().find(n=>n.type==='form').props.onSubmit;const pending=send({preventDefault(){}});await send({preventDefault(){}});assert.equal(calls,2);resolve();await pending;assert.ok(!h.tree().some(n=>n.type==='form'));assert.ok(h.tree().some(n=>n.props?.role==='status'));
+ props.nook.role='member';assert.equal(h.tree().length,0);
+});
+
+test('copying a private memory link uses the current URL and reports clipboard failures',async()=>{
+ const oldNavigator=Object.getOwnPropertyDescriptor(global,'navigator'),oldWindow=Object.getOwnPropertyDescriptor(global,'window');let copied='';
+ Object.defineProperty(global,'navigator',{configurable:true,value:{clipboard:{writeText:async text=>{copied=text;}}}});Object.defineProperty(global,'window',{configurable:true,value:{location:{href:'http://localhost:3000/circles/42/memories/7#voice-8'}}});
+ try{const h=harness(null,{});h.bind(loader({react:h.react})('@/components/solibra/copy-memory-link').CopyMemoryLink);await h.tree().find(n=>n.type==='button').props.onClick();await new Promise(done=>setImmediate(done));assert.equal(copied,window.location.href);assert.ok(h.tree().some(n=>n.props?.role==='status'&&n.props.children.includes('Only existing Nook members')));
+ navigator.clipboard.writeText=async()=>{throw new Error('Denied');};h.tree().find(n=>n.type==='button').props.onClick();await new Promise(done=>setImmediate(done));assert.ok(h.tree().some(n=>n.props?.role==='alert'));
+ }finally{for(const [key,descriptor]of [['navigator',oldNavigator],['window',oldWindow]]){if(descriptor)Object.defineProperty(global,key,descriptor);else delete global[key];}}
+});

@@ -2,12 +2,13 @@
 import Link from 'next/link';
 import { memberCountLabel } from '@/lib/frontend/real-messages';
 import { useEffect, useState } from 'react';
-import type { NookResponse, NookMembershipListResponse, NookInvitationListResponse } from '@/lib/nooks/types';
+import type { NookResponse, NookMembershipListResponse, NookInvitationListResponse, UpdateNookRequest } from '@/lib/nooks/types';
 import type { ArtifactListResponse, ArtifactType } from '@/lib/memories/types';
 import { NookRequestError, saveNookDescription } from '@/lib/frontend/nook-api';
 import { refreshNookLists } from '@/lib/frontend/nook-cache';
 import { useNookData } from './use-nook-data';
 import { NookRequestState } from './nook-request-state';
+import { NookSettings } from './nook-settings';
 import { NookDescription } from './nook-description';
 import { AccountAvatar } from './account-avatar';
 import { MemberProfileCard } from './member-profile';
@@ -41,15 +42,17 @@ export function RealNook({ nookId, viewerId }: { nookId:number; viewerId:number 
   if(nook.id !== nookId) return <main id="main-content" className="sol-main"><p role="alert">This Nook response could not be verified. Return to Library and try again.</p></main>;
   const actualMembers=members.data?.members.filter(member=>member.nookId===nookId) || [];
   const shown=(artifacts.data?.artifacts || []).filter(item=>item.nookId===nookId&&(category==='all'||item.type===category)&&`${item.title} ${item.description||''}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())).sort((a,b)=>newest?b.createdAt.localeCompare(a.createdAt):a.createdAt.localeCompare(b.createdAt));
-  async function save(id:number,description:string|null) {
+  async function saveDetails(data:UpdateNookRequest) {
+    const id=nookId;
     let response:NookResponse;
-    try { response=await saveNookDescription(id,{description}); }
+    try { response=await saveNookDescription(id,data); }
     catch(error){if(error instanceof NookRequestError && [401,403,404].includes(error.status))void detail.mutate();throw error;}
     await detail.mutate(response,{revalidate:false});
     void refreshNookLists(viewerId).catch(()=>{});return response;
   }
   return <main id="main-content" className="sol-main sol-nook-interior"><nav className="sol-breadcrumb" aria-label="Breadcrumb"><Link href="/">Library</Link><span>/</span><span aria-current="page">{nook.name}</span></nav>
-    <Link className="sol-text-link" href={`/messages/${nookId}`}>Group conversation →</Link><div className="nook-introduction"><div><h1>{nook.name}</h1><NookDescription key={nook.id} description={nook.description} editor={{nook,save}}/></div><div className="real-memory-actions"><Link className="sol-button" href={`/circles/${nookId}/memories/new`}>Add Memory</Link>{nook.role==='owner'&&<button className="sol-outline-button" aria-expanded={inviteOpen} onClick={()=>setInviteOpen(value=>!value)}>Invite your people</button>}</div></div>
+    <Link className="sol-text-link" href={`/messages/${nookId}`}>Group conversation →</Link><div className="nook-introduction"><div><h1>{nook.name}</h1><NookDescription key={nook.id} description={nook.description} editor={{nook,save:(_id,description)=>saveDetails({description})}}/></div><div className="real-memory-actions"><Link className="sol-button" href={`/circles/${nookId}/memories/new`}>Add Memory</Link>{nook.role==='owner'&&<button className="sol-outline-button" aria-expanded={inviteOpen} onClick={()=>setInviteOpen(value=>!value)}>Invite your people</button>}</div></div>
+    <NookSettings key={nook.id} nook={nook} save={saveDetails}/>
     <div className="nook-members">{members.error?<NookRequestState error={members.error} retry={()=>void members.mutate()}/>:!members.data?<p role="status">Loading members…</p>:<><div className="nook-member-avatars">{actualMembers.slice(0,6).map(member=><AccountAvatar key={member.id} name={member.user.name} email="" avatarUrl={member.user.avatarUrl}/>)}</div><p>{memberCountLabel(actualMembers.length)} · Private Nook · {nook.role==='owner'?'Owner':'Member'}</p></>}</div>
     {members.data&&!members.error&&<details className="real-member-details"><summary>View Nook member profiles</summary>{actualMembers.map(member=><MemberProfileCard key={member.id} membership={member} nookName={nook.name}/>)}</details>}
     {inviteOpen&&nook.role==='owner'&&<OwnerInvitations key={nookId} nookId={nookId} viewerId={viewerId}/>}

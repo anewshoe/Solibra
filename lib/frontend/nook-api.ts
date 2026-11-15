@@ -10,7 +10,7 @@ export async function nookRequest<T>(path: string, method = 'GET', body?: unknow
   try { response = await fetch(path, { method, credentials: 'same-origin', cache: 'no-store', ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }) }); }
   catch { throw new NookRequestError(0, 'Connection lost. Check before retrying a change; it may have completed.'); }
   if (!response.ok) {
-    const message = response.status === 401 ? 'Please sign in again.' : response.status === 403 ? 'You don’t have permission for this action.' : response.status === 404 ? 'This Nook is unavailable or you no longer have access.' : response.status === 409 ? 'This invitation is no longer pending. Refresh to check its status.' : 'Unable to complete this request. Please try again.';
+    const message = response.status === 401 ? 'Please sign in again.' : response.status === 403 ? 'You don’t have permission for this action.' : response.status === 404 ? 'This Nook is unavailable or you no longer have access.' : response.status === 409 ? (method === 'POST' && /^\/api\/nooks\/[1-9]\d*\/invitations\/[1-9]\d*\/accept$/.test(path) ? 'This invitation is no longer pending. Refresh to check its status.' : 'This request conflicts with the current state. Refresh to check for changes before trying again.') : 'Unable to complete this request. Please try again.';
     throw new NookRequestError(response.status, message);
   }
   try { return await response.json(); } catch { throw new NookRequestError(0, 'The server result could not be confirmed. Refresh before retrying a change.'); }
