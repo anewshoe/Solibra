@@ -36,7 +36,7 @@ export interface NookMembership {
   userId: number;
   role: NookRole;
   joinedAt: string;
-  user: { id: number; name: string | null; email: string };
+  user: { id: number; name: string | null; email: string; avatarUrl?: string | null };
 }
 export interface NookInvitation {
   id: number;
