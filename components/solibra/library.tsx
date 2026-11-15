@@ -30,7 +30,7 @@ function Collection({ viewerId }: { viewerId: number }) {
 }
 export function Library({ user }: { user: AccountProfile | null }) {
   if (!user) return <PublicLanding/>;
-  return <main id="main-content" className="sol-library"><img className="library-sunlight" src="/solibra/soft-sunlight.svg" width={579.755} height={589} alt="" aria-hidden="true"/>
+  return <main id="main-content" className="sol-library">
     <section className="library-welcome"><p className="sol-eyebrow">YOUR SHARED MEMORY LIBRARY</p><h1>A little library.<br/>A lifetime together.</h1><p>{user ? `Welcome${user.name?.trim() ? `, ${user.name.trim()}` : ''}. Your shared stories have a home here.` : 'Sign in to browse your private Nooks and shared memories.'}</p><Button className="sol-button" asChild><Link href={user?'/nooks/new':'/sign-in'}><Plus size={16}/>{user?'Create Nook':'Sign In'}</Link></Button></section>
     {user ? <><Suspense fallback={<p className="library-wall" role="status">Opening your library…</p>}><Collection key={user.id} viewerId={user.id}/></Suspense><InvitationInbox viewerId={user.id}/><section className="recent-additions"><div className="library-section-heading"><SolibraEmote variant="reading" size={64}/><h2>Recent Additions</h2></div><p>Open a Nook to browse its memories. A cross-Nook activity feed is not connected yet.</p></section></> : <section className="library-wall sol-empty"><h2>A private place for your people.</h2><p>Your Nooks are only shown after you sign in.</p><Link className="sol-outline-button" href="/sign-up">Create an account</Link><Link className="sol-text-link" href="/demo">Explore the labeled demo library →</Link></section>}
   </main>;

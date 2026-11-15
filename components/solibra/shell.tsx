@@ -73,7 +73,7 @@ export function SolibraShell({ children, signedOut = false }: { children: React.
       <a href="#main-content" className="sol-skip">Skip to content</a>
       {publicHome ? <header className="sol-header landing-header"><div className="sol-header-inner">
         <Link href="/" className="sol-logo" aria-label="Solibra home"><BrandLogo /></Link>
-        <nav className="landing-navigation" aria-label="Main navigation"><Link href="/demo">Demo Library</Link><Link href="/sign-in">Sign In</Link><Link className="sol-button" href="/sign-up">Create an Account</Link></nav>
+        <nav className="landing-navigation" aria-label="Main navigation"><Link href="/sign-in">Sign In</Link><Link className="sol-button" href="/sign-up">Create an Account</Link></nav>
       </div></header> : <header className={`sol-header ${inNook ? 'sol-header-nook' : ''} ${pathname.startsWith('/messages/') ? 'sol-header-conversation' : ''}`}>
         <div className="sol-header-inner">
           <Link href="/" className="sol-logo" aria-label="Solibra Library"><BrandLogo /></Link>

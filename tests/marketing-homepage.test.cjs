@@ -33,7 +33,7 @@ test('public hero preserves auth destinations and places its only demo link belo
   assert.match(html,/A shelf full of possibilities/);assert.match(html,/Click me!/);
 });
 
-test('preview window opens, closes, restores keyboard focus and uses existing public demo books',()=>{
+test('whole preview window repeatedly toggles, restores keyboard focus and contains decorative books only',()=>{
   let open=false,focused=0;
   const load=loader({react:{...React,useState:()=>[open,value=>{open=typeof value==='function'?value(open):value;}],useId:()=> 'preview',useRef:()=>({current:{focus:()=>focused++}})},
     '@/components/solibra/window-memories':{WindowMemories:()=>{throw Error('Private reads must not render');}}});
@@ -43,14 +43,15 @@ test('preview window opens, closes, restores keyboard focus and uses existing pu
   let tree=Window({circle,publicPreview:true});
   let nodes=flatten(tree);assert.equal(tree.props['data-open'],false);
   assert.equal(nodes.find(n=>n.props.id==='preview'&&n.props.className?.includes('nook-interior')).props.hidden,true);
-  const links=nodes.filter(n=>n.props.className==='landing-window-book');assert.equal(links.length,3);assert.ok(links.every(link=>link.props.href==='/demo'));
+  const books=nodes.filter(n=>n.props.className==='landing-window-book');assert.equal(books.length,3);assert.ok(books.every(book=>book.type==='span'&&!book.props.href&&!book.props.onClick&&!book.props.tabIndex));
+  assert.equal(nodes.filter(n=>n.type==='button').length,1);assert.ok(!nodes.some(n=>n.props.className==='landing-window-control'));
   nodes.find(n=>n.props['aria-label']==='Open the demo window').props.onClick();assert.equal(open,true);
   tree=Window({circle,publicPreview:true});nodes=flatten(tree);
-  assert.equal(nodes.find(n=>n.props.className==='landing-window-control').props['aria-expanded'],true);
+  assert.equal(nodes.find(n=>n.type==='button').props['aria-expanded'],true);
   assert.equal(nodes.find(n=>n.props.id==='preview'&&n.props.className?.includes('nook-interior')).props.hidden,false);
-  nodes.find(n=>n.props.className==='landing-window-control').props.onClick();assert.equal(open,false);
-  nodes.find(n=>n.props.className==='landing-window-control').props.onClick();assert.equal(open,true);
-  tree.props.onKeyDown({key:'Escape'});assert.equal(open,false);assert.ok(focused>=2);
+  nodes.find(n=>n.type==='button').props.onClick();assert.equal(open,false);
+  nodes.find(n=>n.type==='button').props.onClick();assert.equal(open,true);
+  tree.props.onKeyDown({key:'Escape'});assert.equal(open,false);assert.equal(focused,1);
 });
 
 test('shell renders exactly one header for public and authenticated routes with public navigation on mobile',()=>{
@@ -62,8 +63,19 @@ test('shell renders exactly one header for public and authenticated routes with 
     })('@/components/solibra/shell').SolibraShell;
     const html=render(Shell,{signedOut,children:React.createElement('main',{id:'main-content'})});
     assert.equal((html.match(/<header/g)||[]).length,1);
-    if(signedOut){assert.match(html,/landing-navigation/);assert.match(html,/href="\/demo"/);assert.match(html,/href="\/sign-up"/);assert.doesNotMatch(html,/aria-label="Mobile navigation"/);}
+    if(signedOut){assert.match(html,/landing-navigation/);assert.doesNotMatch(html,/href="\/demo"/);assert.match(html,/href="\/sign-in"/);assert.match(html,/href="\/sign-up"/);assert.doesNotMatch(html,/aria-label="Mobile navigation"/);}
     else {assert.doesNotMatch(html,/landing-navigation/);assert.match(html,/aria-label="Mobile navigation"/);}
   }
+});
+
+test('authenticated Library omits the old sunlight overlay while retaining its welcome and collection',()=>{
+  const Library=loader({
+    'next/navigation':{useSearchParams:()=>new URLSearchParams(),useRouter:()=>({replace(){}})},
+    '@/components/solibra/use-nook-data':{useNookData:()=>({data:{nooks:[]}})},
+    '@/components/solibra/invitation-inbox':{InvitationInbox:()=>null},
+    '@/components/solibra/shell':{DesignIcon:()=>null}
+  })('@/components/solibra/library').Library;
+  const html=render(Library,{user:{id:1,name:'Reader',email:'reader@example.test'}});
+  assert.doesNotMatch(html,/library-sunlight|soft-sunlight/);assert.match(html,/Welcome, Reader/);assert.match(html,/Your private library wall/);
 });
 

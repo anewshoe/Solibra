@@ -30,18 +30,17 @@ export function NookWindow({ circle, nook, initialOpen = false, viewerId, public
       if (event.key === 'Escape') { setOpen(false); toggleRef.current?.focus(); }
     }}>
       <div className="landing-window-invitation" aria-hidden="true"><span>Click me!</span><svg viewBox="0 0 90 60" fill="none"><path d="M8 8C62 0 80 22 42 49m0 0 1-15m-1 15 16-2" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
-      <div className="nook-arch-button"><div className="nook-arch">
+      <button ref={toggleRef} type="button" className="nook-arch-button landing-window-toggle" aria-label={`${open ? 'Close' : 'Open'} the demo window`} aria-expanded={open} aria-controls={interiorId} onClick={() => setOpen(value => !value)}><span className="nook-arch" aria-hidden="true">
         <span className="nook-blush-border" aria-hidden="true" />
-        <div className="nook-interior landing-window-interior" id={interiorId} hidden={!open}>
+        <span className="nook-interior landing-window-interior" id={interiorId} hidden={!open}>
           <span className="landing-window-welcome">Little stories, waiting for you</span>
-          <div className="landing-window-books">{books.map((book, index) => <Link href="/demo" className="landing-window-book" data-cover={index} key={book.id} aria-label={`Explore ${book.title} in the demo Library`}>
+          <span className="landing-window-books">{books.map((book, index) => <span className="landing-window-book" data-cover={index} key={book.id}>
             <span className="book-imprint">SOLIBRA</span><span>{book.title}</span><small>{book.category === 'voice' ? 'A familiar voice' : book.category === 'recipe' ? 'Made with love' : 'A little moment'}</small>
-          </Link>)}</div>
-        </div>
-        <button type="button" className="nook-door-space landing-window-shutters" aria-label="Open the demo window" aria-controls={interiorId} aria-expanded={open} aria-hidden={open} tabIndex={open ? -1 : 0} onClick={() => { setOpen(true); toggleRef.current?.focus(); }}><Shutters /></button>
-      </div></div>
+          </span>)}</span>
+        </span>
+        <span className="nook-door-space landing-window-shutters"><Shutters /></span>
+      </span></button>
       <h3 id={titleId}>A shelf full of possibilities.</h3>
-      <button ref={toggleRef} type="button" className="landing-window-control" aria-expanded={open} aria-controls={interiorId} onClick={() => setOpen(value => !value)}>{open ? 'Close the window' : 'Open the window'} <ArrowRight size={16} aria-hidden="true" /></button>
     </article>;
   }
 
