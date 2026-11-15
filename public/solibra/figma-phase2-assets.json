@@ -1,0 +1,35 @@
+{
+  "fileKey": "Um2mpoMAJNKWRuubPDgnc0",
+  "assets": [
+    {
+      "file": "back.svg",
+      "node": "4:8934",
+      "figmaConstant": "imgBackIcon"
+    },
+    {
+      "file": "more.svg",
+      "node": "4:8934",
+      "figmaConstant": "imgMoreIcon"
+    },
+    {
+      "file": "attach.svg",
+      "node": "4:8934",
+      "figmaConstant": "imgPlusIcon"
+    },
+    {
+      "file": "microphone.svg",
+      "node": "4:8934",
+      "figmaConstant": "imgMicIcon"
+    },
+    {
+      "file": "kitchen-memory.png",
+      "node": "4:8934",
+      "figmaConstant": "imgFamilyPhotographSundayInTheKitchen"
+    },
+    {
+      "file": "kitchen-memory.png",
+      "node": "4:8926",
+      "figmaConstant": "imgOriginalPhotographElenaAndSofiaMakingTortillas"
+    }
+  ]
+}
