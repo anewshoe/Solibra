@@ -4,7 +4,9 @@
     {
       "AllowedOrigins": [
         "http://localhost:3000",
-        "https://solibra-two.vercel.app"
+        "https://solibra-two.vercel.app",
+        "https://www.solibra.club",
+        "https://solibra.club"
       ],
       "AllowedMethods": ["POST"],
       "AllowedHeaders": ["*"],

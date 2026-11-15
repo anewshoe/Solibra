@@ -131,6 +131,22 @@ test('expired or malformed sessions fail closed; a database failure returns 503'
   assert.equal((await authorizeVoiceRequest(request(null))).status, 503);
 });
 
+test('voice guard accepts authenticated custom-domain requests and rejects cross-domain origins',async()=>{
+ process.env.NODE_ENV='production';
+ const {authorizeVoiceRequest}=projectLoader({
+  '@/lib/auth/session':{getSession:async()=>({user:{id:1},expires:new Date(Date.now()+60000).toISOString()})},
+  '@/lib/db/queries':{getUser:async()=>({id:1})}
+ })('@/lib/voice/access');
+ for(const origin of ['https://www.solibra.club','https://solibra.club','https://solibra-two.vercel.app']){
+  assert.deepEqual(await authorizeVoiceRequest(request(null,{origin,'sec-fetch-site':'same-origin'},origin+'/api/voice/process')),{ok:true});
+ }
+ for(const origin of ['https://solibra.club','https://solibra-two.vercel.app','https://evil.example']){
+  assert.equal((await authorizeVoiceRequest(request(null,{origin,'x-forwarded-host':new URL(origin).host},'https://www.solibra.club/api/voice/process'))).status,403);
+ }
+ const unsigned=projectLoader({'@/lib/auth/session':{getSession:async()=>null}})('@/lib/voice/access');
+ assert.equal((await unsigned.authorizeVoiceRequest(request(null,{origin:'https://www.solibra.club'},'https://www.solibra.club/api/voice/translate'))).status,401);
+});
+
 test('route rejects cross-site and unauthenticated requests before processing', async () => {
   const { POST } = loadRoute();
   devEnvironment();
