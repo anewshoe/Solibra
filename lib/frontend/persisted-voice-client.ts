@@ -1,4 +1,4 @@
-import type { Artifact, Contribution, ContributionResponse } from '@/lib/memories/types';
+import type { Artifact, ArtifactResponse, Contribution, ContributionListResponse, ContributionResponse } from '@/lib/memories/types';
 import { processContributionSchema, translateContributionSchema, type PersistedVoiceResponse, type PersistedVoicePartialFailure } from '@/lib/voice/persistence-types';
 import { validateMedia, matchesMediaSignature } from '@/lib/media/validation';
 import { uploadPrivateMedia } from './media-client';
@@ -46,6 +46,26 @@ export class VoiceSaveFlow {
   saved = false;
   uncertainStage: 'artifact' | 'contribution' | null = null;
   busy = false;
+  contribution?: Contribution;
+  uploadAttempted = false;
+  snapshot() {
+    return { artifactId: this.artifactId, contributionId: this.contributionId, saved: this.saved, uncertainStage: this.uncertainStage, busy: this.busy, contribution: this.contribution, uploadAttempted: this.uploadAttempted };
+  }
+  async resumeArtifact(id: number) {
+    if (this.busy || this.saved || this.uncertainStage !== 'artifact') throw new Error('This recording cannot change its memory now.');
+    const { artifact } = await nookRequest<ArtifactResponse>(artifactPath(this.nookId, id));
+    if (artifact.id !== id || artifact.nookId !== this.nookId || artifact.creatorId !== this.viewerId || artifact.type !== 'audio' || artifact.mediaStorageKey) throw new Error('Choose your own unfinished voice memory in this Nook.');
+    const list = await nookRequest<ContributionListResponse>(`${artifactPath(this.nookId,id)}/contributions`);
+    const own = list.contributions.filter(c => c.artifactId === id && c.authorId === this.viewerId && c.type === 'audio');
+    this.artifactId = id; this.contributionId = undefined; this.contribution = undefined; this.uncertainStage = own.length ? 'contribution' : null;
+    return own;
+  }
+  async resumeContribution(id: number) {
+    if (this.busy || this.saved || !this.artifactId) throw new Error('Choose a confirmed memory first.');
+    const { contribution } = await nookRequest<ContributionResponse>(contributionPath(this.nookId, this.artifactId, id));
+    if (!validContribution(contribution, this.artifactId, id) || contribution.authorId !== this.viewerId) throw new Error('Choose your own voice draft in this memory.');
+    this.contributionId = id; this.contribution = contribution; this.uncertainStage = null; this.saved = !!contribution.audioStorageKey;
+  }
   constructor(readonly nookId: number, readonly viewerId: number, artifactId?: number, contributionId?: number) {
     resourceId(nookId); if (artifactId) resourceId(artifactId); if (contributionId) resourceId(contributionId);
     this.artifactId = artifactId; this.contributionId = contributionId;
@@ -53,6 +73,7 @@ export class VoiceSaveFlow {
   async save(blob: Blob, createArtifact: (() => Promise<Artifact>) | undefined, changed: (stage: string) => void, alive = () => true) {
     if (this.busy || this.saved || this.uncertainStage) return;
     this.busy = true;
+    changed('Saving recording…');
     let stage: 'artifact' | 'contribution' | 'upload' = 'artifact';
     try {
       const media = await validateRecording(blob);
@@ -63,6 +84,7 @@ export class VoiceSaveFlow {
         const artifact = await createArtifact();
         if (artifact.nookId !== this.nookId || artifact.creatorId !== this.viewerId || artifact.type !== 'audio') throw new MemoryWriteError(201, 'The created memory could not be verified. Check your Nook.', true);
         this.artifactId = resourceId(artifact.id);
+        changed('Saving recording…');
       }
       if (!alive()) return;
       stage = 'contribution';
@@ -71,13 +93,17 @@ export class VoiceSaveFlow {
         const { contribution } = await createAudioContribution(this.nookId, this.artifactId);
         if (contribution.authorId !== this.viewerId) throw new MemoryWriteError(201, 'The contribution author could not be verified. Refresh this memory.', true);
         this.contributionId = contribution.id;
+        this.contribution = contribution;
+        changed('Saving recording…');
       }
       if (!alive()) return;
       stage = 'upload'; changed('Attaching your recording…');
       const path = contributionPath(this.nookId, this.artifactId, this.contributionId);
       const current = await nookRequest<ContributionResponse>(path);
       if (!validContribution(current.contribution, this.artifactId, this.contributionId) || current.contribution.authorId !== this.viewerId) throw new Error('The saved voice could not be verified.');
+      this.contribution = current.contribution;
       if (!current.contribution.audioStorageKey) {
+        this.uploadAttempted = true;
         const result = await uploadPrivateMedia(`${path}/media`, blob);
         if (result.media?.url !== `${path}/media` || result.media.byteSize !== blob.size || result.media.contentType !== media.contentType) throw new Error('Attachment result could not be verified. Refresh before retrying.');
       }
@@ -85,6 +111,6 @@ export class VoiceSaveFlow {
     } catch (cause) {
       if (stage !== 'upload' && cause instanceof MemoryWriteError && cause.uncertain) this.uncertainStage = stage;
       throw cause;
-    } finally { this.busy = false; }
+    } finally { this.busy = false; changed(''); }
   }
 }

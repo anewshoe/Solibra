@@ -1,5 +1,14 @@
 # Real voice frontend integration
 
+## Voice UX repairs after `ee3ed13`
+
+- Perspective selection now opens only Write or Record. Text and hidden recording drafts are kept; hiding/closing the recorder stops the microphone. Switching a resumed draft to a new voice clears its ID and warns before discarding local audio.
+- Confirmed audio perspectives collapse the editor and render once. An audio memory's original recording is prominent near its title, not duplicated in the voices sidebar.
+- Create Voice Memory uses Record → Save → Transcribe & Translate → Done, inline title validation, and contextual recovery. Save-state snapshots update after every confirmed stage and failure. Upload acknowledgment enables playback/processing even when the follow-up metadata read fails. Recovery explicitly verifies real account/Nook/resource IDs.
+- Collapsed voice cards hide transcripts. Saved-language selection and new-language requests are separate. Translation-fetch/provider errors preserve authorized audio; generation 403 is distinct from read revocation. A 409/unknown outcome requires refresh before retry, and fresh processing leases block repeat requests.
+- Fixed a development playback bug: effect cleanup unloaded the audio URL during React effect replay without restoring it. Setup now restores the authorized source; real unmounts still pause/unload it.
+- Focused mocks cover these repairs. Browser review verified existing stored audio playback after reload, persisted transcript/translation reads, editor switching/closing with preserved text, and mobile layout. No new recordings, provider requests, or database mutations were made; fresh save/processing and microphone close behavior still need an approved development smoke test.
+
 On `feat/mvp-integration`, fast-forwarded the clean working tree from `b31004c` to main `712553d`. No backend, provider, recorder-hook, schema, environment, storage, or deployment implementation was changed.
 
 ## Connected behavior
