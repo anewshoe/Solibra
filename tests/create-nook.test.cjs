@@ -49,12 +49,13 @@ test('typed adapter uses existing authenticated contracts and requires 201 plus 
   } finally { global.fetch = realFetch; }
 });
 
+global.window = { matchMedia: () => ({ matches: true }) };
 function harness(api) {
-  const slots = []; let cursor = 0;
+  const slots = []; const cleanups = []; let cursor = 0;
   const react = {
     useState(initial) { const i = cursor++; if (!(i in slots)) slots[i] = initial; return [slots[i], value => { slots[i] = typeof value === 'function' ? value(slots[i]) : value; }]; },
     useRef(initial) { const i = cursor++; if (!(i in slots)) slots[i] = { current: initial }; return slots[i]; },
-    useEffect() {}
+    useEffect(effect) { const i = cursor++; if (!(i in slots)) { slots[i] = true; cleanups.push(effect()); } }
   };
   const realApi = loader()('@/lib/frontend/nooks-client');
   const Component = loader({ react, '@/lib/frontend/nooks-client': { ...realApi, ...api }, '@/components/solibra/shell': { Mascot: () => null } })('@/components/solibra/create-nook').CreateNookWorkflow;
@@ -66,6 +67,7 @@ function harness(api) {
     click(text) { const item = render().find(el => el.props?.children === text && el.props.onClick); assert.ok(item, text); return item.props.onClick(); },
     has(text) { return render().some(el => el.props?.children === text); },
     tree: render,
+    unmount() { cleanups.forEach(cleanup => cleanup?.()); },
     error: realApi.NookApiError
   };
 }
@@ -79,23 +81,22 @@ test('workflow validates, retains fields on Back, guards duplicate creation, and
   h.input('nook-name', 'Sunday table'); h.input('nook-description', 'Our shared recipes'); h.submit();
   h.click('Back / Edit'); assert.equal(h.tree().find(el => el.props?.id === 'nook-description').props.value, 'Our shared recipes');
   h.submit(); h.click('Create Nook'); h.click('Creating…'); assert.equal(calls, 1);
-  resolve({ nook }); await flush(); assert.ok(h.has('Skip for now')); assert.ok(h.has('Invite your people'));
-  assert.equal(h.tree().find(el => el.props?.children === 'Skip for now').props.href, '/');
+  resolve({ nook }); await flush(); assert.ok(h.has('Skip invitations')); h.click('Skip invitations'); assert.ok(h.has('Your Nook is ready.')); h.click('Back to invitations'); assert.ok(h.has('Skip invitations')); assert.equal(calls, 1);
 });
 
 test('creation errors preserve review data; invitation retry preserves the created Nook and completed invites', async () => {
   let creationCalls = 0; let inviteCalls = 0;
   const h = harness({ createNook: async () => { if (++creationCalls === 1) throw new Error('Unavailable'); return { nook }; }, inviteNookMember: async () => { if (++inviteCalls === 1) throw new Error('Unavailable'); return { invitation }; } });
   h.input('nook-name', 'Sunday table'); h.submit(); h.click('Create Nook'); await flush();
-  assert.ok(h.has('Unable to create your Nook. Your entries are still here.')); h.click('Create Nook'); await flush();
-  h.click('Invite your people'); h.input('invite-email', 'invalid'); h.submit(); assert.ok(h.has('Enter a valid email address, up to 255 characters.'));
+  assert.ok(h.has('Unable to create your Nook. Your entries are still here.')); assert.equal(h.tree().find(el => el.type?.name === 'NookPreview').props.opening, false); h.click('Create Nook'); await flush();
+  h.input('invite-email', 'invalid'); h.submit(); assert.ok(h.has('Enter a valid email address, up to 255 characters.'));
   h.input('invite-email', ' ELENA@example.com '); h.submit();
   h.input('invite-email', 'elena@example.com'); h.submit(); assert.ok(h.has('That email is already on your list.'));
   const submitInvites = h.tree().find(el => el.props?.children === 'Create pending invitations').props.onClick; submitInvites(); submitInvites(); await flush(); assert.equal(inviteCalls, 1);
-  assert.ok(h.has('Invitation not confirmed')); assert.ok(h.has('Finish / Return to Library'));
+  assert.ok(h.has('Invitation not confirmed')); assert.ok(h.has('Continue to Ready')); h.click('Continue to Ready'); assert.ok(h.has('Your Nook is ready.')); assert.ok(h.tree().some(el => el.props?.role === 'status' && Array.isArray(el.props.children) && el.props.children.some(text => typeof text === 'string' && text.includes('were not confirmed')))); h.click('Back to invitations');
   h.click('Retry invitation'); await flush(); assert.equal(inviteCalls, 2); assert.equal(creationCalls, 2);
   assert.ok(h.has('Invitation created · Pending · #7'));
-  assert.ok(!h.has('Retry invitation')); assert.ok(!h.has('Create pending invitations'));
+  assert.ok(!h.has('Retry invitation')); assert.ok(!h.has('Create pending invitations')); h.click('Continue to Ready'); assert.ok(h.has('Your Nook is ready.')); assert.ok(h.tree().some(el => el.type === 'li' && el.props.children?.[0] === 'elena@example.com')); assert.equal(creationCalls, 2);
 });
 
 test('optional description clears to null, cancel is available, and queued invitees can be removed without requests', async () => {
@@ -105,7 +106,69 @@ test('optional description clears to null, cancel is available, and queued invit
   h.input('nook-name', 'Sunday table'); h.input('nook-description', 'x'.repeat(2001)); h.submit();
   assert.ok(h.has('Keep your description to 2,000 characters or fewer.'));
   h.input('nook-description', '   '); h.submit(); h.click('Create Nook'); await flush(); assert.equal(payload.description, null);
-  h.click('Invite your people'); h.input('invite-email', invitation.email); h.submit();
+  h.input('invite-email', invitation.email); h.submit();
   const remove = h.tree().find(el => el.props?.['aria-label'] === `Remove ${invitation.email}`); assert.ok(remove); remove.props.onClick();
-  assert.ok(!h.has('Create pending invitations')); assert.ok(h.has('Finish / Return to Library')); assert.equal(writes, 0);
+  assert.ok(!h.has('Create pending invitations')); assert.ok(h.has('Continue to Ready')); assert.equal(writes, 0);
+});
+
+test('customization uses five retained radio colors and updated text, without adding API fields', async () => {
+  let payload;
+  const h = harness({ createNook: async data => { payload = data; return { nook }; } });
+  assert.ok(h.has('Customize your Nook'));
+  assert.equal(h.tree().find(el => el.props?.id === 'nook-name').props.placeholder, 'The Goyettes');
+  assert.equal(h.tree().find(el => el.props?.id === 'nook-description').props.placeholder, 'What kind of memories do you want to collect?');
+  const preview = () => h.tree().find(el => el.type?.name === 'NookPreview').props;
+  assert.equal(preview().color, 'pink');
+  for (const color of ['pink','lilac','blue','green','yellow']) {
+    h.tree().find(el => el.props?.type === 'radio' && el.props.value === color).props.onChange();
+    assert.equal(preview().color, color);
+    assert.equal(h.tree().find(el => el.props?.type === 'radio' && el.props.checked).props.value, color);
+  }
+  h.input('nook-name', 'Sunday table'); h.submit(); assert.equal(preview().color, 'yellow');
+  h.click('Back / Edit'); assert.equal(preview().color, 'yellow'); h.submit(); h.click('Create Nook'); await flush();
+  assert.deepEqual(payload, { name: 'Sunday table', description: null });
+  h.click('Skip invitations'); assert.equal(preview().color, 'yellow');
+  assert.equal(preview().opening, false);
+});
+
+test('only confirmed success opens doors; normal motion waits 500ms before invitations', async () => {
+  const { creationTransitionMs } = loader()('@/lib/frontend/nook-colors');
+  assert.equal(creationTransitionMs(true), 0); assert.equal(creationTransitionMs(false), 500);
+  let resolve; let calls = 0;
+  const h = harness({ createNook: () => { calls++; return new Promise(done => { resolve = done; }); } });
+  const preview = () => h.tree().find(el => el.type?.name === 'NookPreview').props;
+  global.window.matchMedia = () => ({ matches: false });
+  try {
+    h.input('nook-name', 'Sunday table'); h.submit(); h.click('Create Nook');
+    assert.equal(preview().opening, false);
+    resolve({ nook }); await flush(); assert.equal(preview().opening, true); assert.ok(!h.has('Skip invitations'));
+    h.click('Nook created…'); assert.equal(calls, 1);
+    await new Promise(done => setTimeout(done, 530));
+    assert.equal(preview().opening, false); assert.ok(h.has('Skip invitations'));
+  } finally { global.window.matchMedia = () => ({ matches: true }); }
+});
+
+test('unmount cancels the decorative transition timer', async () => {
+  const h = harness({ createNook: async () => ({ nook }) });
+  const originalSetTimeout = global.setTimeout; const originalClearTimeout = global.clearTimeout;
+  const token = {}; let cleared = false;
+  global.window.matchMedia = () => ({ matches: false });
+  global.setTimeout = (callback, ms) => { assert.equal(ms, 500); return token; };
+  global.clearTimeout = timer => { assert.equal(timer, token); cleared = true; };
+  try {
+    h.input('nook-name', 'Sunday table'); h.submit(); h.click('Create Nook'); await flush();
+    h.unmount(); assert.equal(cleared, true);
+  } finally { global.setTimeout = originalSetTimeout; global.clearTimeout = originalClearTimeout; global.window.matchMedia = () => ({ matches: true }); }
+});
+
+test('local hostname rejection offers the canonical address without retrying or changing Origin headers', async () => {
+  const realFetch = global.fetch; const oldLocation = global.window.location;
+  const api = loader()('@/lib/frontend/nooks-client'); let calls = 0;
+  global.window.location = { hostname: '127.0.0.1', port: '3000' };
+  global.fetch = async (url, options) => {
+    calls++; assert.equal(options.headers.Origin, undefined);
+    return Response.json({ error: { code: 'FORBIDDEN', message: 'Cross-origin Nook requests are not allowed.' } }, { status: 403 });
+  };
+  try { await assert.rejects(api.createNook({ name: 'Test' }), error => error.status === 403 && /http:\/\/localhost:3000\/nooks\/new/.test(error.message)); assert.equal(calls, 1); }
+  finally { global.fetch = realFetch; global.window.location = oldLocation; }
 });

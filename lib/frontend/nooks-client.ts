@@ -17,7 +17,13 @@ async function post(path: string, data: unknown): Promise<unknown> {
   try { body = await response.json(); } catch { throw new NookApiError('The server returned an unreadable result. Check before retrying; the request may have completed.', response.status, true); }
   if (response.status !== 201) {
     const parsed = errorSchema.safeParse(body);
-    throw new NookApiError(response.status === 401 ? 'Sign in to continue. Your entries are still here.' : parsed.success ? parsed.data.error.message : 'The request could not be completed.', response.status, response.ok || response.status >= 500);
+    let message = response.status === 401 ? 'Sign in to continue. Your entries are still here.' : parsed.success ? parsed.data.error.message : 'The request could not be completed.';
+    // Next dev may normalize the route URL to localhost despite a 127.0.0.1 Host.
+    // Correct the preview address instead of relaxing the server's origin guard.
+    if (response.status === 403 && parsed.success && parsed.data.error.message === 'Cross-origin Nook requests are not allowed.' && typeof window !== 'undefined' && window.location?.hostname === '127.0.0.1') {
+      message += ` For local development, open http://localhost${window.location.port ? `:${window.location.port}` : ''}/nooks/new and sign in there. No Nook was created by this rejected request.`;
+    }
+    throw new NookApiError(message, response.status, response.ok || response.status >= 500);
   }
   return body;
 }
