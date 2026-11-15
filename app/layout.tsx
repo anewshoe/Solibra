@@ -1,4 +1,5 @@
 import './globals.css';
+import { withoutPasswordHash } from '@/lib/frontend/account';
 import type { Metadata, Viewport } from 'next';
 import { Manrope } from 'next/font/google';
 import { getUser, getTeamForUser } from '@/lib/db/queries';
@@ -32,7 +33,7 @@ export default function RootLayout({
             fallback: {
               // We do NOT await here
               // Only components that read this data will suspend
-              '/api/user': getUser(),
+              '/api/user': getUser().then(withoutPasswordHash),
               '/api/team': getTeamForUser()
             }
           }}

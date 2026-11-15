@@ -1,0 +1,26 @@
+.demo-label { position: relative; padding: 16px 24px; background: var(--sol-inset); color: var(--sol-secondary); text-align: center; font-size: 14px; }
+.demo-label a { text-decoration: underline; }
+.real-nook-hint { margin: 16px 0 !important; color: var(--sol-secondary); font-size: 13px; }
+.invitation-inbox > * + *, .invitation-inbox li > div > * + * { margin-top: 12px; }
+.invitation-inbox ul, .message-nook-list { list-style: none; padding: 0; display: grid; gap: 16px; }
+.invitation-inbox li, .message-nook-list li { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 20px; background: var(--sol-raised); border-radius: 16px; }
+.invitation-inbox button:disabled { opacity: .6; }
+.real-artifact-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit,minmax(min(100%,210px),1fr)); margin-bottom: 24px; }
+.real-artifact { padding: 20px; min-width: 0; overflow-wrap: anywhere; border-radius: 12px; background: var(--sol-sand); color: var(--sol-on-light); }
+.real-artifact h3 { font: 400 24px/1.4 var(--font-solibra-decorative),serif; }
+.real-artifact p { white-space: pre-wrap; }
+.real-artifact .sol-eyebrow { color: var(--sol-on-light); }
+.real-artifact > * + * { margin-top: 12px; }
+.real-empty-shelf { min-height: 100px; display: grid; place-items: center; text-align: center; color: var(--sol-cream); padding-bottom: 24px; }
+.real-member-details { margin-block: 16px 24px; }
+.real-member-details summary { cursor: pointer; min-height: 44px; }
+.real-member-details .member-profile-card { margin-top: 20px; }
+.owner-invitations { margin-bottom: 24px; }
+.nook-member-avatars .account-avatar { width: 36px; height: 36px; font-size: 16px; }
+.real-nook-hint + .real-nook-hint { margin-top: 0; }
+.sol-nook-interior .memory-toolbar { flex-wrap: wrap; }
+.sol-nook-interior .memory-toolbar > label:last-child select { max-width: 100%; min-height: 44px; background: var(--sol-inset); border-radius: 10px; padding: 8px; }
+
+.nook-window h2 { overflow-wrap: anywhere; max-width: 100%; }
+.nook-introduction > div { min-width: 0; overflow-wrap: anywhere; }
+.library-welcome p, .real-member-details, .message-nook-list li { overflow-wrap: anywhere; }

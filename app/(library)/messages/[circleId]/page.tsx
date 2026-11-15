@@ -7,5 +7,5 @@ export default async function MessagesPage({ params, searchParams }: { params: P
   const circle = sampleCircles.find((item) => item.id === circleId);
   if (!circle) notFound();
   const { request } = await searchParams;
-  return <FamilyMessages key={circleId} circle={circle} initialRequestId={request} />;
+  return <FamilyMessages key={circleId} circle={{...circle,title:`Demo · ${circle.title}`}} initialRequestId={request} />;
 }

@@ -314,3 +314,7 @@ html:has(.solibra)::-webkit-scrollbar { display: none; }
 }
 
 .sol-desktop-nav [aria-current="page"] { color: var(--sol-cream); text-decoration: underline; text-underline-offset: 8px; }
+.sol-header .official-logo { width: 160px; height: auto; }
+/* Numeric records use empty architectural shelves, never fixture photographs. */
+.real-window-shelves { position: absolute; inset: 48% 8% 8%; display: flex; flex-direction: column; justify-content: space-between; }
+.real-window-shelves i { display: block; height: 8px; background: var(--sol-cream); box-shadow: 0 3px 4px #431b2526; }
