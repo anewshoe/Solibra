@@ -19,9 +19,10 @@ export const createContributionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('audio') }).strict()
 ]);
 export const createMessageSchema = z.object({
-  content: z.string().trim().min(1).max(5_000),
+  type: z.enum(['text', 'audio']).optional(),
+  content: z.string().trim().max(5_000).optional(),
   artifactId: z.number().int().positive().max(2_147_483_647).nullable().optional()
-}).strict();
+}).strict().refine(value => value.type === 'audio' || !!value.content, 'Text messages need content.');
 
 export type CreateArtifactRequest = z.input<typeof createArtifactSchema>;
 export type CreateContributionRequest = z.input<typeof createContributionSchema>;
@@ -59,6 +60,12 @@ export interface Message {
   content: string;
   artifactId: number | null;
   createdAt: string;
+  type?: 'text' | 'audio';
+  audioUrl?: string | null;
+  originalTranscript?: string | null;
+  sourceLanguage?: string | null;
+  processingStatus?: ProcessingStatus | null;
+  updatedAt?: string;
 }
 export interface ArtifactResponse { artifact: Artifact }
 export interface ArtifactListResponse { artifacts: Artifact[] }

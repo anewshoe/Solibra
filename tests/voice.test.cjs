@@ -288,7 +288,7 @@ test('provider failures are sanitized and logged without request/response conten
   }
 });
 
-function recorderHarness({ constructorFails = false, permission, supportedType = 'audio/mp4' } = {}) {
+function recorderHarness({ constructorFails = false, permission, supportedType = 'audio/mp4', maxDurationMs = 1000 } = {}) {
   const names = ['window', 'navigator', 'MediaRecorder'];
   const originals = names.map((name) => Object.getOwnPropertyDescriptor(global, name));
   const timers = new Map();
@@ -351,7 +351,7 @@ function recorderHarness({ constructorFails = false, permission, supportedType =
     useEffect(fn) { if (!mounted) cleanups.push(fn()); },
   };
   const { useAudioRecorder } = projectLoader({ react })('@/hooks/useAudioRecorder');
-  const render = () => { cursor = 0; const result = useAudioRecorder({ maxDurationMs: 1000 }); mounted = true; return result; };
+  const render = () => { cursor = 0; const result = useAudioRecorder({ maxDurationMs }); mounted = true; return result; };
   return {
     render, timers, intervals, instances, revoked, streams,
     unmount: () => cleanups.forEach((fn) => fn?.()),
@@ -372,8 +372,9 @@ test('recorder finalizes asynchronously, selects Safari MP4, and releases URLs o
     assert.equal(h.render().status, 'recording');
     h.render().stopRecording();
     assert.equal(h.render().status, 'stopping');
-    assert.equal(h.streams[0].track.stopped, true);
+    assert.equal(h.streams[0].track.stopped, false);
     h.instances[0].finish();
+    assert.equal(h.streams[0].track.stopped, true);
     const recording = h.render();
     assert.equal(recording.status, 'stopped');
     assert.equal(recording.audioBlob.type, 'audio/mp4');
@@ -452,6 +453,18 @@ test('Chrome recording uses Opus WebM and exceeding 4 MiB releases the microphon
     assert.equal(h.streams[0].track.stopped, true);
     assert.equal(h.timers.size + h.intervals.size, 0);
   } finally { h.restore(); }
+});
+
+test('all chunks, including the final stop event, survive 10, 30, 60 and 120 second recordings',async()=>{
+ const originalNow=Date.now;let now=originalNow();Date.now=()=>now;
+ try{for(const seconds of [10,30,60,120]){
+  const h=recorderHarness({maxDurationMs:120000});
+  try{await h.render().startRecording();const chunks=[];
+   for(let second=0;second<seconds;second++){const text=`chunk-${second};`;chunks.push(text);h.instances[0].ondataavailable({data:new Blob([text],{type:'audio/mp4'})});}
+   now+=seconds*1000;h.render().stopRecording();assert.equal(h.streams[0].track.stopped,false);h.instances[0].finish();
+   const result=h.render();assert.equal(result.elapsedMs,seconds*1000);assert.equal(await result.audioBlob.text(),chunks.join('')+'test audio');assert.equal(result.audioBlob.size,new Blob([chunks.join('')+'test audio']).size);assert.equal(h.streams[0].track.stopped,true);
+  }finally{h.restore();}
+ }}finally{Date.now=originalNow;}
 });
 
 test('microphone permission denial is actionable and leaves no active recorder', async () => {

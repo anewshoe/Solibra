@@ -33,6 +33,6 @@ export async function sendNookMessage(nookId: number, input: CreateMessageReques
   let result: MessageResponse;
   try { result = await response.json(); } catch { throw new MessageSendError(201,'The saved message could not be confirmed. Refresh before retrying.',true); }
   const message=result?.message;
-  if (!message || numericNookId(String(message.id)) !== message.id || message.nookId!==nookId || numericNookId(String(message.senderId))!==message.senderId || message.content!==parsed.content || message.artifactId!==(parsed.artifactId??null) || !Number.isFinite(Date.parse(message.createdAt)) || (message.artifactId!==null && numericNookId(String(message.artifactId))!==message.artifactId)) throw new MessageSendError(201,'The saved message returned an unexpected result. Refresh before retrying.',true);
+  if (!message || numericNookId(String(message.id)) !== message.id || message.nookId!==nookId || numericNookId(String(message.senderId))!==message.senderId || message.content!==(parsed.content??'') || (message.type??'text')!==(parsed.type??'text') || message.artifactId!==(parsed.artifactId??null) || !Number.isFinite(Date.parse(message.createdAt)) || (message.artifactId!==null && numericNookId(String(message.artifactId))!==message.artifactId)) throw new MessageSendError(201,'The saved message returned an unexpected result. Refresh before retrying.',true);
   return result;
 }

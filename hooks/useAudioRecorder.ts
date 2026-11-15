@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ACCEPTED_AUDIO_TYPES, AUDIO_SIZE_LABEL, baseContentType, MAX_AUDIO_BYTES, MAX_RECORDING_DURATION_MS } from '@/lib/voice/audio';
+import { finalizeWebmDuration } from '@/lib/voice/webm-duration';
 const MIME_CANDIDATES = [
   'audio/webm;codecs=opus',
   'audio/webm',
@@ -136,7 +137,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
     }
     setStatus('stopping');
     recorder.stop();
-    stopStream(streamRef.current);
+    // onstop follows the final dataavailable event. Keep tracks alive until then.
   }, [clearTimer, maxDurationMs]);
 
   const startRecording = useCallback(async () => {
@@ -174,8 +175,8 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
 
       const supportedMimeType = preferredMimeType();
       const recorder = supportedMimeType
-        ? new MediaRecorder(stream, { mimeType: supportedMimeType })
-        : new MediaRecorder(stream);
+        ? new MediaRecorder(stream, { mimeType: supportedMimeType, audioBitsPerSecond: 64_000 })
+        : new MediaRecorder(stream, { audioBitsPerSecond: 64_000 });
 
       recorderRef.current = recorder;
       chunksRef.current = [];
@@ -202,7 +203,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         setError('Recording stopped because the microphone reported an error.');
       };
 
-      recorder.onstop = () => {
+      recorder.onstop = async () => {
         if (generation !== generationRef.current) return;
         if (startedAtRef.current !== null) {
           setElapsedMs(Math.min(Date.now() - startedAtRef.current, maxDurationMs));
@@ -220,15 +221,19 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           setError('This browser produced an unsupported audio format. Try another browser.');
           return;
         }
-        const blob = new Blob(chunksRef.current, { type: recordedType });
+        const completeBlob = new Blob(chunksRef.current, { type: recordedType });
+        const duration = startedAtRef.current === null ? Math.min(Date.now() - started, maxDurationMs) : 0;
         chunksRef.current = [];
 
-        if (blob.size === 0) {
+        if (completeBlob.size === 0) {
           setStatus('idle');
           setError('The recording was empty. Try again.');
           return;
         }
 
+        const blob = recordedType.includes('webm') ? await finalizeWebmDuration(completeBlob, duration) : completeBlob;
+        if (generation !== generationRef.current) return;
+        if (blob.size > MAX_AUDIO_BYTES) { setStatus('idle'); setError(`The recording exceeded ${AUDIO_SIZE_LABEL}. Record a shorter message.`); return; }
         const url = URL.createObjectURL(blob);
         urlRef.current = url;
         setAudioBlob(blob);
@@ -237,7 +242,8 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         setStatus('stopped');
       };
 
-      startedAtRef.current = Date.now();
+      const started = Date.now();
+      startedAtRef.current = started;
       timerRef.current = window.setInterval(() => {
         if (startedAtRef.current === null) return;
         const elapsed = Date.now() - startedAtRef.current;

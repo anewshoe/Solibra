@@ -45,7 +45,7 @@ export function NookWindow({ circle, nook, initialOpen = false, viewerId, public
   }
 
   return (
-    <article className="nook-window" aria-labelledby={titleId} data-open={open}>
+    <article className="nook-window" aria-labelledby={titleId} data-open={open} data-door-color={nook?.doorColor ?? 'pink'}>
       <button
         type="button"
         className="nook-arch-button"

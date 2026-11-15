@@ -12,7 +12,7 @@ async function jsonResult<T>(response: Response): Promise<T> {
 export async function uploadPrivateMedia(
   mediaPath: string, file: Blob, signal?: AbortSignal
 ): Promise<MediaCompleteResponse> {
-  if (!/^\/api\/nooks\/\d+\/artifacts\/\d+(\/contributions\/\d+)?\/media$/.test(mediaPath)) {
+  if (!/^\/api\/nooks\/[1-9]\d*\/(artifacts\/[1-9]\d*(\/contributions\/[1-9]\d*)?|messages\/[1-9]\d*)\/media$/.test(mediaPath)) {
     throw new Error('Use the private media path of a saved Nook artifact or contribution.');
   }
   const { upload } = await jsonResult<MediaUploadResponse>(await fetch(mediaPath, {

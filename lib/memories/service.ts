@@ -20,7 +20,11 @@ const artifactJson = (row: ArtifactRow): Artifact => ({
 const contributionJson = (row: ContributionRow): Contribution => ({
   ...row, createdAt: row.createdAt.toISOString(), updatedAt: row.updatedAt.toISOString()
 });
-const messageJson = (row: MessageRow): Message => ({ ...row, createdAt: row.createdAt.toISOString() });
+export const messageJson = (row: MessageRow): Message => {
+  const { audioStorageKey: _key, ...data } = row;
+  return { ...data, audioUrl: row.audioStorageKey ? `/api/nooks/${row.nookId}/messages/${row.id}/media?v=${encodeURIComponent(row.updatedAt.toISOString())}` : null,
+    createdAt: row.createdAt.toISOString(), updatedAt: row.updatedAt?.toISOString() };
+};
 
 async function inNook<T>(userId: number, nookId: number, operation: (tx: Transaction) => Promise<T>) {
   return db.transaction(async (tx) => {
@@ -96,7 +100,8 @@ export async function createMessage(userId: number, nookId: number, data: Create
   return inNook(userId, nookId, async (tx) => {
     if (data.artifactId != null) await requireArtifact(tx, nookId, data.artifactId);
     const [row] = await tx.insert(messages).values({
-      nookId, senderId: userId, content: data.content, artifactId: data.artifactId ?? null
+      nookId, senderId: userId, content: data.content ?? '', artifactId: data.artifactId ?? null,
+      type: data.type ?? 'text', processingStatus: data.type === 'audio' ? 'draft' : null
     }).returning();
     return messageJson(row);
   });

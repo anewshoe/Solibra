@@ -19,7 +19,7 @@ function role(value: string): NookRole {
 }
 function nook(row: Team, membershipRole: string): Nook {
   return {
-    id: row.id, name: row.name, description: row.description,
+    id: row.id, name: row.name, description: row.description, doorColor: row.doorColor ?? 'pink',
     createdAt: row.createdAt.toISOString(), updatedAt: row.updatedAt.toISOString(),
     role: role(membershipRole)
   };
@@ -66,7 +66,7 @@ async function lockNook(tx: Transaction, nookId: number) {
 
 export async function createNookInTransaction(tx: Transaction, userId: number, data: CreateNookRequest) {
   const [row] = await tx.insert(teams).values({
-    name: data.name, description: data.description ?? null
+    name: data.name, description: data.description ?? null, doorColor: data.doorColor ?? 'pink'
   }).returning();
   await tx.insert(teamMembers).values({ teamId: row.id, userId, role: 'owner' });
   await audit(tx, row.id, userId, 'CREATE_NOOK');

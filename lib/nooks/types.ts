@@ -1,11 +1,14 @@
 import { z } from 'zod';
+import { NOOK_DOOR_COLORS, type NookDoorColor } from '@/lib/frontend/nook-colors';
+export const nookDoorColorSchema = z.enum(NOOK_DOOR_COLORS);
 
 // Browser-safe contract: no database or server-only imports.
 export const nookRoleSchema = z.enum(['owner', 'member']);
 export type NookRole = z.infer<typeof nookRoleSchema>;
 export const createNookSchema = z.object({
   name: z.string().trim().min(1).max(100),
-  description: z.string().trim().max(2000).nullable().optional()
+  description: z.string().trim().max(2000).nullable().optional(),
+  doorColor: nookDoorColorSchema.optional()
 }).strict();
 export const updateNookSchema = createNookSchema.partial().refine(
   (value) => Object.keys(value).length > 0,
@@ -29,6 +32,7 @@ export interface Nook {
   createdAt: string;
   updatedAt: string;
   role: NookRole;
+  doorColor: NookDoorColor;
 }
 export interface NookMembership {
   id: number;
