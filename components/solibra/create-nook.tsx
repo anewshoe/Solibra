@@ -9,7 +9,7 @@ import { createNook, NookApiError } from '@/lib/frontend/nooks-client';
 import { NOOK_DOOR_COLORS, creationTransitionMs, type NookDoorColor } from '@/lib/frontend/nook-colors';
 import { InvitationQueueFields, useInvitationQueue } from './invitation-queue';
 import { refreshNookLists } from '@/lib/frontend/nook-cache';
-import { Mascot } from './shell';
+import { SolibraEmote } from './solibra-emote';
 
 const steps = ['Customize your Nook', 'Review and create', 'Invite your people', 'Your Nook is ready'];
 
@@ -80,7 +80,7 @@ export function CreateNookWorkflow({ viewerId }: {viewerId?:number} = {}) {
         <div className="create-actions"><Link href="/" className="sol-outline-button">Cancel</Link><Button className="sol-button" type="submit">Continue</Button></div>
       </form>}
       {step === 1 && <><h2>{name.trim()}</h2><p className="create-description">{description.trim() || 'A little space for your shared memories.'}</p><div className="create-privacy"><LockKeyhole size={20} aria-hidden="true" /><p>Private to you and the people who join. Only Nook owners can manage its details and invitations.</p></div><p>This creates an additional Nook in your signed-in account. It won’t change your existing Nooks.</p><div className="create-actions"><button className="sol-outline-button" disabled={busy} onClick={() => { setStep(0); setError(null); }}>Back / Edit</button><Button className="sol-button" disabled={busy} onClick={() => void create()}>{opening ? 'Nook created…' : busy ? 'Creating…' : 'Create Nook'}</Button></div><Link className="sol-text-link" href="/" aria-disabled={busy} onClick={event => { if (busy) event.preventDefault(); }}>Cancel</Link></>}
-      {step >= 2 && nook && <><div className="create-ready"><Mascot /><div><h2>{nook.name}</h2><p className="create-description">{nook.description || 'A little space for your shared memories.'}</p></div></div><p className="create-confirmation" role="status">Nook created · Reference #{nook.id}</p><p>Your Nook is in your Library. Open it whenever you’re ready.</p><p className="create-help">Refreshing clears this workflow’s display, not the Nook or invitations already created.</p></>}
+      {step >= 2 && nook && <><div className="create-ready"><SolibraEmote variant="celebrate" size="clamp(64px, 16vw, 88px)" /><div><h2>{nook.name}</h2><p className="create-description">{nook.description || 'A little space for your shared memories.'}</p></div></div><p className="create-confirmation" role="status">Nook created · Reference #{nook.id}</p><p>Your Nook is in your Library. Open it whenever you’re ready.</p><p className="create-help">Refreshing clears this workflow’s display, not the Nook or invitations already created.</p></>}
       {step === 2 && <><h3>Who would you like to join you?</h3><p>Invitations are optional. No invitation emails are sent; invited accounts can find pending invitations in their Library invitation inbox.</p>{InvitationQueueFields(queue)}
         <p className="create-help">A failed invitation won’t undo your Nook. You can finish even if some invitations are not created.</p><div className="create-actions"><button className="sol-outline-button" disabled={busy} onClick={() => setStep(3)}>Skip invitations</button><Button className="sol-button" disabled={busy} onClick={() => setStep(3)}>Continue to Ready</Button></div>
       </>}

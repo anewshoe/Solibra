@@ -89,11 +89,11 @@ function resources(messages=[]){return{
  '/api/nooks/42/artifacts':{data:{artifacts:[{id:7,nookId:42,title:'A real artifact'},{id:8,nookId:99,title:'WRONG_NOOK'}]}}
 };}
 
-test('real rendering supports empty/populated conversations, actual senders and same-Nook metadata without fake memory links',()=>{
+test('real rendering supports empty/populated conversations, actual senders and same-Nook links without cross-Nook memory destinations',()=>{
  for(const messages of [[],[message,{...message,id:2,senderId:5,artifactId:7},{...message,id:3,senderId:99,artifactId:8}]]){
   const Component=conversationLoader(resources(messages))('@/components/solibra/real-conversation').RealConversation;
   const html=renderToStaticMarkup(React.createElement(Component,{nookId:42,viewerId:5}));
-  assert.ok(html.includes('/messages/43'));assert.ok(html.includes('Our actual Nook'));assert.ok(html.includes('1 member'));assert.ok(!html.includes('PRIVATE_EMAIL'));assert.ok(!html.includes('Sofía'));assert.ok(!html.includes('Elena'));assert.ok(!html.includes('WRONG_NOOK'));assert.ok(!html.includes('/memories/7'));
+  assert.ok(html.includes('/messages/43'));assert.ok(html.includes('Our actual Nook'));assert.ok(html.includes('1 member'));assert.ok(!html.includes('PRIVATE_EMAIL'));assert.ok(!html.includes('Sofía'));assert.ok(!html.includes('Elena'));assert.ok(!html.includes('WRONG_NOOK'));if(messages.length)assert.ok(html.includes('/circles/42/memories/7'));assert.ok(!html.includes('/memories/8'));
   if(messages.length){assert.ok(html.includes('An Actual Reader'));assert.ok(html.includes('You'));assert.ok(html.includes('Former member'));assert.ok(html.includes('A real artifact'));}else assert.ok(html.includes('first message'));
  }
 });

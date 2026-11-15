@@ -1,5 +1,9 @@
 # Real Nook group messaging
 
+## Memory integration follow-up
+
+Real Memory Details and creation are now connected. Conversation artifact metadata is fetched only for linked messages, and verified same-Nook labels open real numeric Memory Details. Sharing starts from Memory Details and sends a normal group text with an artifact ID. See [Real memory frontend integration](./real-memories-integration.md) for current scope and verification; the earlier metadata-only/deferred-attachment notes below describe the previous phase.
+
 Implemented on `feat/mvp-integration` from main `35cbed0`. No server routes, permission rules, origin guards, database models, migrations, authentication, photo/media storage, voice pipeline, deployment configuration, or dependencies changed.
 
 ## Connected experience
