@@ -2,7 +2,7 @@ import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
-import { artifacts, contributions, teams } from '@/lib/db/schema';
+import { artifacts, contributions, teams, translations } from '@/lib/db/schema';
 import { requireNookMembership } from '@/lib/nooks/service';
 import { NookError } from '@/lib/nooks/errors';
 import { storage, UPLOAD_SECONDS } from './storage';
@@ -13,7 +13,10 @@ import type { MediaUploadRequest, MediaUploadResponse, MediaCompleteResponse } f
 
 export interface MediaScope { nookId: number; artifactId: number; contributionId: number | null }
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
-interface Resource { kind: 'photo' | 'audio'; key: string | null; version: string }
+interface Resource {
+  kind: 'photo' | 'audio'; key: string | null; version: string;
+  contribution?: typeof contributions.$inferSelect;
+}
 
 function prefix(scope: MediaScope) {
   return `nooks/${scope.nookId}/artifacts/${scope.artifactId}` +
@@ -40,6 +43,7 @@ async function resource(tx: Transaction, userId: number, scope: MediaScope, mana
   let kind: string = artifact.type;
   let key = artifact.mediaStorageKey;
   let updatedAt = artifact.updatedAt;
+  let contributionRow: typeof contributions.$inferSelect | undefined;
   if (scope.contributionId !== null) {
     const [contribution] = await tx.select().from(contributions).where(and(
       eq(contributions.id, scope.contributionId), eq(contributions.artifactId, scope.artifactId)
@@ -49,6 +53,7 @@ async function resource(tx: Transaction, userId: number, scope: MediaScope, mana
     kind = contribution.type;
     key = contribution.audioStorageKey;
     updatedAt = contribution.updatedAt;
+    contributionRow = contribution;
   }
   if (manage && role !== 'owner' && authorId !== userId) {
     throw new NookError(403, 'FORBIDDEN', 'Only the creator or a Nook owner may manage this media.');
@@ -59,16 +64,66 @@ async function resource(tx: Transaction, userId: number, scope: MediaScope, mana
   if (key && !validKey(scope, key, 'objects')) {
     throw new NookError(409, 'CONFLICT', 'The Nook media reference is invalid.');
   }
-  return { kind, key, version: updatedAt.toISOString() };
+  return { kind, key, version: updatedAt.toISOString(), contribution: contributionRow };
+}
+// Reuse exactly the media resource/membership/namespace/author checks in processing.
+export async function authorizeAudioContribution(tx: Transaction, userId: number, scope: MediaScope, manage: boolean) {
+  const current = await resource(tx, userId, scope, manage);
+  if (!current.contribution || current.kind !== 'audio') {
+    throw new NookError(415, 'INVALID_REQUEST', 'This Nook contribution is not an audio contribution.');
+  }
+  return current.contribution;
 }
 async function saveKey(tx: Transaction, scope: MediaScope, key: string | null) {
   if (scope.contributionId === null) {
     await tx.update(artifacts).set({ mediaStorageKey: key, updatedAt: new Date() })
       .where(and(eq(artifacts.id, scope.artifactId), eq(artifacts.nookId, scope.nookId)));
   } else {
-    await tx.update(contributions).set({ audioStorageKey: key, updatedAt: new Date() })
+    // Invalidate generated text and the processing lease atomically with attachment changes.
+    await tx.delete(translations).where(eq(translations.contributionId, scope.contributionId));
+    await tx.update(contributions).set({
+      audioStorageKey: key, originalTranscript: null, sourceLanguage: null,
+      processingStatus: key ? 'draft' : null, updatedAt: new Date()
+    })
       .where(and(eq(contributions.id, scope.contributionId), eq(contributions.artifactId, scope.artifactId)));
   }
+}
+
+export async function loadStoredContributionAudio(userId: number, scope: MediaScope, expectedKey: string, signal: AbortSignal) {
+  try {
+    const row = await db.transaction(tx => authorizeAudioContribution(tx, userId, scope, true));
+    if (!row.audioStorageKey || row.audioStorageKey !== expectedKey) {
+      throw new NookError(409, 'CONFLICT', 'Nook audio changed. Retry processing the current recording.');
+    }
+    signal.throwIfAborted();
+    const meta = await storage.head(row.audioStorageKey);
+    const file = validateMedia('audio', meta.contentType, meta.byteSize);
+    const reader = (await storage.get(row.audioStorageKey)).getReader();
+    const cancel = () => { void reader.cancel().catch(() => {}); };
+    signal.addEventListener('abort', cancel, { once: true });
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    try {
+      while (!signal.aborted) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > file.byteSize) throw new NookError(413, 'INVALID_REQUEST', 'Stored Nook audio exceeds its expected size.');
+        chunks.push(value);
+      }
+      signal.throwIfAborted();
+      const data = new Uint8Array(size);
+      let offset = 0;
+      for (const chunk of chunks) { data.set(chunk, offset); offset += chunk.byteLength; }
+      if (size !== file.byteSize || !matchesMediaSignature(data.subarray(0, 32), file.contentType)) {
+        throw new NookError(415, 'INVALID_REQUEST', 'Stored Nook audio is incomplete or unsupported.');
+      }
+      return { data, contentType: file.contentType, filename: `memory.${file.extension}` };
+    } finally {
+      signal.removeEventListener('abort', cancel);
+      await reader.cancel().catch(() => {}); reader.releaseLock();
+    }
+  } catch (error) { return serviceError(error); }
 }
 async function safeRemove(key: string) {
   try { await storage.remove(key); return true; }

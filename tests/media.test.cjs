@@ -126,7 +126,7 @@ function scripted(steps) {
         return next.rows??[];
       }).then(resolve,reject);}}; return q;
   }
-  const api={select:()=>query('select'), update:t=>query('update',t), async transaction(fn){
+  const api={select:()=>query('select'), update:t=>query('update',t), delete:t=>query('delete',t), async transaction(fn){
     const before=writes.length; try{return await fn(api);}catch(error){writes.splice(before);throw error;}
   }};
   database=api;
@@ -217,11 +217,13 @@ test('successful completion publishes an immutable verified key and retires stag
 test('contribution audio completion updates the matching audio key without invoking the voice pipeline',async()=>{
   const audioStage=`${start}/contributions/30/staging/${uuid}.wav`;
   stored.set(audioStage,{bytes:wav,type:'audio/wav'});
-  const f=scripted([...access(2,'member',artifact,true,contribution),{op:'update',table:'contributions',params:[30,20]}]);
+  const f=scripted([...access(2,'member',artifact,true,contribution),
+    {op:'delete',table:'translations',params:[30]}, {op:'update',table:'contributions',params:[30,20]}]);
   const token=await ticket({...contributionScope,userId:2,stagingKey:audioStage,contentType:'audio/wav'});
   const result=await service.completeMediaUpload(2,contributionScope,token);
   assert.ok(f.writes[0].audioStorageKey.includes('/contributions/30/objects/'));
-  assert.equal(result.media.contentType,'audio/wav');assert.equal('originalTranscript' in f.writes[0],false);f.done();
+  assert.equal(result.media.contentType,'audio/wav');assert.equal(f.writes[0].originalTranscript,null);
+  assert.equal(f.writes[0].sourceLanguage,null);assert.equal(f.writes[0].processingStatus,'draft');f.done();
 });
 test('finalize tickets reject tampering, another user, wrong resource IDs, expiration, and session-token substitution',async()=>{
   const good=await ticket(); const f=scripted([]);

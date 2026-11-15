@@ -6,6 +6,7 @@
     "build": "next build",
     "start": "next start",
     "test:voice": "node --test tests/voice.test.cjs",
+    "test:persisted-voice": "node --test tests/voice-persistence.test.cjs",
     "test:memories": "node --test tests/memories.test.cjs",
     "test:media": "node --test tests/media.test.cjs",
     "db:setup": "npx tsx lib/db/setup.ts",
