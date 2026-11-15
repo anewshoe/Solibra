@@ -6,8 +6,8 @@ import { ArrowRight } from 'lucide-react';
 import type { SampleCircle } from '@/lib/fixtures/library';
 import { NookMemorabilia } from './nook-memorabilia';
 
-export function NookWindow({ circle }: { circle: SampleCircle }) {
-  const [open, setOpen] = useState(false);
+export function NookWindow({ circle, initialOpen = false }: { circle: SampleCircle; initialOpen?: boolean }) {
+  const [open, setOpen] = useState(initialOpen);
   const titleId = useId();
   const interiorId = useId();
 

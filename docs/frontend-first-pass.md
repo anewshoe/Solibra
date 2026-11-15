@@ -1,5 +1,7 @@
 # Solibra frontend first pass
 
+This is the historical first-pass record. Messages, Memory Details, and voice controls are now implemented in [Phase 2](frontend-phase-two.md); that document supersedes the corresponding placeholder descriptions and next-task recommendation below.
+
 Implemented on `feat/figma-frontend`, based on the actual connected Figma file `Um2mpoMAJNKWRuubPDgnc0`.
 
 ## Design sources

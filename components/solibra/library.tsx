@@ -67,7 +67,7 @@ export function Library() {
       <section className="library-story" aria-label="A story waiting for you">
         <Mascot listening />
         <div><h2>A familiar voice, a new story.</h2><p>Elena added a recording to “Sundays in her kitchen”.</p></div>
-        <Link href="/circles/rivera-family#voice-story" className="sol-outline-button">Listen to her story <ArrowRight size={16} /></Link>
+        <Link href="/circles/rivera-family/memories/sundays-in-her-kitchen" className="sol-outline-button">Listen to her story <ArrowRight size={16} /></Link>
       </section>
     </main>
   );
