@@ -25,6 +25,13 @@ const iconMap: Record<ActivityType, LucideIcon> = {
   [ActivityType.REMOVE_TEAM_MEMBER]: UserMinus,
   [ActivityType.INVITE_TEAM_MEMBER]: Mail,
   [ActivityType.ACCEPT_INVITATION]: CheckCircle,
+  [ActivityType.CREATE_NOOK]: UserPlus,
+  [ActivityType.UPDATE_NOOK]: Settings,
+  [ActivityType.INVITE_NOOK_MEMBER]: Mail,
+  [ActivityType.ACCEPT_NOOK_INVITATION]: CheckCircle,
+  [ActivityType.REVOKE_NOOK_INVITATION]: Mail,
+  [ActivityType.UPDATE_NOOK_MEMBER]: UserCog,
+  [ActivityType.REMOVE_NOOK_MEMBER]: UserMinus,
 };
 
 function getRelativeTime(date: Date) {
@@ -63,6 +70,20 @@ function formatAction(action: ActivityType): string {
       return 'You invited a team member';
     case ActivityType.ACCEPT_INVITATION:
       return 'You accepted an invitation';
+    case ActivityType.CREATE_NOOK:
+      return 'You created a Nook';
+    case ActivityType.UPDATE_NOOK:
+      return 'You updated a Nook';
+    case ActivityType.INVITE_NOOK_MEMBER:
+      return 'You invited a Nook member';
+    case ActivityType.ACCEPT_NOOK_INVITATION:
+      return 'You accepted a Nook invitation';
+    case ActivityType.REVOKE_NOOK_INVITATION:
+      return 'You revoked a Nook invitation';
+    case ActivityType.UPDATE_NOOK_MEMBER:
+      return 'You updated a Nook member’s role';
+    case ActivityType.REMOVE_NOOK_MEMBER:
+      return 'You removed a Nook member';
     default:
       return 'Unknown action occurred';
   }
