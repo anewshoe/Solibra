@@ -50,3 +50,18 @@ test('signed-out landing has account/demo actions, official branding and no priv
  const Library=loader({'@/components/solibra/use-nook-data':{useNookData(){throw new Error('Private read');}},'@/components/solibra/shell':{DesignIcon:()=>null}})('@/components/solibra/library').Library;
  const html=render(Library,{user:null});for(const href of ['/sign-up','/sign-in','/demo'])assert.ok(html.includes(`href="${href}"`));assert.equal((html.match(/<img[^>]+solibra-logo.png/g)||[]).length,1);assert.ok(html.includes('fictional samples'));assert.ok(!html.includes('/api/nooks'));assert.ok(!html.includes('nook-collection'));assert.ok(!html.includes('Rivera'));
 });
+
+test('loading placeholders are decorative, reduced-motion safe, and contain no invented records',()=>{
+ const load=loader();const {BookSkeletons,WindowSkeletons,PageSkeleton}=load('@/components/solibra/loading');
+ const books=render(BookSkeletons,{});assert.equal((books.match(/memory-book-slot/g)||[]).length,5);assert.ok(books.includes('aria-hidden="true"'));assert.ok(!books.includes('<a'));assert.ok(!books.includes('<h3'));
+ const windows=render(WindowSkeletons,{});assert.ok(windows.includes('aria-busy="true"'));assert.ok(windows.includes('role="status"'));assert.ok(!windows.includes('<button'));
+ const memory=render(PageSkeleton,{kind:'memory',label:'Opening your memory…'});assert.ok(memory.includes('loading-memory'));assert.ok(!memory.includes('Rivera'));assert.ok(!memory.includes('/api/'));
+ const css=fs.readFileSync(path.resolve(__dirname,'../components/solibra/ui-polish.css'),'utf8');assert.match(css,/@media\(prefers-reduced-motion: reduce\)[^}]+\.sol-skeleton[^}]+animation: none/s);
+});
+
+test('miniature books appear only during initial authorized open-window loading',()=>{
+ for(const [open,data,error,count] of [[false,undefined,undefined,0],[true,undefined,undefined,8],[true,{artifacts:[]},undefined,0],[true,undefined,new Error('No access'),0]]) {
+  const Mini=loader({'@/components/solibra/use-nook-data':{useNookData:()=>({data,error})}})('@/components/solibra/window-memories').WindowMemories;
+  const html=render(Mini,{nookId:7,viewerId:5,open});assert.equal((html.match(/window-memory-book sol-skeleton/g)||[]).length,count);assert.ok(!html.includes('<a'));
+ }
+});
