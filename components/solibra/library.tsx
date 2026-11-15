@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, Plus } from 'lucide-react';
@@ -56,7 +57,7 @@ export function Library() {
         <p className="sol-eyebrow">YOUR SHARED MEMORY LIBRARY</p>
         <h1>A little library.<br />A lifetime together.</h1>
         <p>Good morning, Sofía. There’s a story waiting for you.</p>
-        <Button className="sol-button" onClick={() => notice('Create a Nook', 'Nook creation is coming next. You can explore the three sample Nooks in this frontend preview; nothing you do here creates or saves a Nook.')}><Plus size={16} />Create Nook</Button>
+        <Button className="sol-button" asChild><Link href="/nooks/new"><Plus size={16} />Create Nook</Link></Button>
       </section>
       <Suspense fallback={<div className="library-wall" aria-busy="true">Opening your library…</div>}><LibraryCollection /></Suspense>
       <section className="library-invitation" aria-label="An invitation to share">

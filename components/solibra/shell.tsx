@@ -69,7 +69,7 @@ export function SolibraShell({ children }: { children: React.ReactNode }) {
         <div className="sol-header-inner">
           <Link href="/" className="sol-logo" aria-label="Solibra Library"><Mascot /><span>solibra</span></Link>
           <nav aria-label="Main navigation" className="sol-desktop-nav">
-            <Link href="/" aria-current={(pathname === '/' || inNook) ? 'page' : undefined}><DesignIcon name="library" />Library</Link>
+            <Link href="/" aria-current={(pathname === '/' || pathname === '/nooks/new' || inNook) ? 'page' : undefined}><DesignIcon name="library" />Library</Link>
             <Link href={`/messages/${circleId}`} aria-current={inMessages ? 'page' : undefined}><DesignIcon name="messages" />Messages</Link>
           </nav>
           <div className="sol-header-actions">
@@ -82,7 +82,7 @@ export function SolibraShell({ children }: { children: React.ReactNode }) {
       {children}
       <footer className="sol-footer"><p>A private place for the people who matter.</p><p>Your memories stay yours. Always.</p></footer>
       <nav aria-label="Mobile navigation" className="sol-bottom-nav">
-        <Link href="/" aria-current={(pathname === '/' || inNook) ? 'page' : undefined}><DesignIcon name="library" />Library</Link>
+        <Link href="/" aria-current={(pathname === '/' || pathname === '/nooks/new' || inNook) ? 'page' : undefined}><DesignIcon name="library" />Library</Link>
         <Link href={`/messages/${circleId}`} aria-current={inMessages ? 'page' : undefined}><DesignIcon name="messages" />Messages</Link>
         <Link href="/dashboard"><DesignIcon name="user" />You</Link>
       </nav>
