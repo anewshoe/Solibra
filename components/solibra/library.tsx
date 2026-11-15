@@ -10,7 +10,7 @@ import { sampleRecentAdditions } from '@/lib/fixtures/recent-additions';
 import { NookWindow } from './nook-window';
 import { DesignIcon, useNotice } from './shell';
 
-const tabs = [{ id: 'my', label: 'My Nooks', count: 3 }, { id: 'shared', label: 'Shared with me' }, { id: 'recent', label: 'Recent' }] as const;
+const tabs = [{ id: 'my', label: 'All Nooks', count: sampleCircles.length }, { id: 'shared', label: 'Shared with me' }, { id: 'recent', label: 'Recent' }] as const;
 
 function LibraryCollection() {
   const params = useSearchParams();

@@ -27,3 +27,13 @@ When wiring real Nooks, read the resource with the existing authenticated sessio
 - Production browser checks at 390×844, 320×844, and 1440×1000: no horizontal overflow or item text overflow in the bookshelf; all six books/photos render; recipe book filters the memory list. Mobile navigation destinations are evenly sized. Recent Additions links to the canonical kitchen artifact. Library is current on Memory Details and Nook interior. Header surface resolves to the existing rose token (`rgb(135, 48, 66)`).
 
 The editor's authenticated save/error flow awaits the real-resource adapter and live owner/member testing. Its sample-page read-only state and rendered permission/fallback states were checked; no real description was written. Physical keyboard/microphone/live voice provider behavior was not retested in this styling pass; existing failure-recovery suites passed. No commit, push, merge, deployment, or database migration performed.
+
+## Final local review
+
+On the final review after `bd9feab`, renamed the inclusive “My Nooks” collection to “All Nooks” and derived its count from the existing fixtures. Kept `tab=my` for URL compatibility; Shared with me still filters the existing membership fixture flag. Real GET `/api/nooks` returns all memberships; future shared-view mapping should use per-Nook membership roles agreed with the backend, rather than global user roles.
+
+Fetched main at `90ae0d81c4df91fa662f80d63825d14335ed31a4`, already an ancestor of this branch. No textual merge blocker or original backend/auth/voice changes found. All 42 tests and production build passed. Standalone TypeScript initially raced with build regeneration of ignored `.next` types; rerunning after build passed. Whitespace check passed. Existing middleware and baseline-data warnings remain.
+
+Browser verified the normal development Library, inclusive/shared tabs, all three door toggles, six bookshelf artifacts, canonical kitchen memory route, Messages composer, and mobile three-destination navigation without horizontal overflow. Live microphone/provider and physical keyboard behavior remain manual checks. Description save integration still requires authenticated real Nook IDs, membership and PATCH adapter as described above; fixtures remain read-only.
+
+The existing local server was the voice-bypass launcher. It was stopped and replaced with normal `pnpm dev --hostname 127.0.0.1` on port 3000, using existing environment configuration, and left running for manual review. No commit, push, merge, deployment, or migration performed.
