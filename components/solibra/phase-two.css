@@ -218,3 +218,5 @@
   .memory-detail-grid { gap: 24px; }
 }
 @media (prefers-reduced-motion: reduce) { .recording-dot { animation: none; } }
+
+.persona-disclosure { margin: 0 0 6px; color: var(--sol-secondary); font-size: 11px; line-height: 1.4; }

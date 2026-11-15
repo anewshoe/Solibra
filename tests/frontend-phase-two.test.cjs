@@ -148,3 +148,16 @@ test('authentication errors preserve the local recording and expose sign-in reco
     assert.equal(h.recorder.audioUrl, 'blob:original-recording'); assert.ok(h.recorder.audioBlob);
   } finally { h.unmount(); global.fetch = realFetch; if (oldWindow) Object.defineProperty(global, 'window', oldWindow); else delete global.window; }
 });
+
+test('description display has a fallback and only verified numeric owner resources expose editing', () => {
+  const load = loader();
+  const { NookDescription } = load('@/components/solibra/nook-description');
+  const React = require('react');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const render = (description, nook) => renderToStaticMarkup(React.createElement(NookDescription, { description, editor: nook ? { nook, save: async () => { throw new Error('Not connected'); } } : undefined }));
+  assert.match(render('  '), /A little space for your shared memories/);
+  assert.doesNotMatch(render('A shared story'), /Edit description/);
+  assert.doesNotMatch(render('A shared story', { id: 42, role: 'member' }), /Edit description/);
+  assert.doesNotMatch(render('A shared story', { id: 'rivera-family', role: 'owner' }), /Edit description/);
+  assert.match(render('A shared story', { id: 42, role: 'owner' }), /Edit description/);
+});

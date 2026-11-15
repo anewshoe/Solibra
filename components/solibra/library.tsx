@@ -1,13 +1,14 @@
 'use client';
 
-import Link from 'next/link';
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { sampleCircles } from '@/lib/fixtures/library';
+import { RecentAdditions } from './recent-additions';
+import { sampleRecentAdditions } from '@/lib/fixtures/recent-additions';
 import { NookWindow } from './nook-window';
-import { DesignIcon, Mascot, useNotice } from './shell';
+import { DesignIcon, useNotice } from './shell';
 
 const tabs = [{ id: 'my', label: 'My Nooks', count: 3 }, { id: 'shared', label: 'Shared with me' }, { id: 'recent', label: 'Recent' }] as const;
 
@@ -64,11 +65,7 @@ export function Library() {
           Invite someone into your family’s story. <ArrowRight size={16} />
         </button>
       </section>
-      <section className="library-story" aria-label="A story waiting for you">
-        <Mascot listening />
-        <div><h2>A familiar voice, a new story.</h2><p>Elena added a recording to “Sundays in her kitchen”.</p></div>
-        <Link href="/circles/rivera-family/memories/sundays-in-her-kitchen" className="sol-outline-button">Listen to her story <ArrowRight size={16} /></Link>
-      </section>
+      <RecentAdditions entries={sampleRecentAdditions} />
     </main>
   );
 }

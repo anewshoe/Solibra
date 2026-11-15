@@ -6,6 +6,7 @@ import { ArrowRight, Plus } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { sampleMembers, sampleMemories, type MemoryCategory, type SampleCircle } from '@/lib/fixtures/library';
+import { NookDescription } from './nook-description';
 import { Bookshelf } from './bookshelf';
 import { AudioMemoryCard, MemoryCard } from './memory-card';
 import { DesignIcon, useNotice } from './shell';
@@ -31,7 +32,7 @@ export function NookInterior({ circle }: { circle: SampleCircle }) {
     <main id="main-content" className="sol-main sol-nook-interior">
       <nav aria-label="Breadcrumb" className="sol-breadcrumb"><Link href="/">Library</Link><span aria-hidden="true">/</span><span aria-current="page">{circle.title}</span></nav>
       <div className="nook-introduction">
-        <div><h1>{circle.title}</h1><p>{circle.description}</p></div>
+        <div><h1>{circle.title}</h1><NookDescription description={circle.description} /></div>
         <Button className="sol-button" onClick={() => notice('Add a memory', 'Memory uploads are coming in a later frontend pass. The memories shown here are sample data; this action does not upload or save anything.')}><Plus size={16} />Add memory</Button>
       </div>
       <div className="nook-members">

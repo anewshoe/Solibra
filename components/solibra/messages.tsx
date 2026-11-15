@@ -35,7 +35,7 @@ function VoiceMessage({ contribution }: { contribution: Contribution }) {
   const [originalOpen, setOriginalOpen] = useState(false);
   const target = Object.keys(contribution.translations)[0];
   return <div className="voice-message" data-contribution-id={contribution.contributionId}>
-    <div className="contribution-player"><AudioPlayer src={contribution.audioUrl} durationMs={contribution.durationMs} label={`${members[contribution.authorId].name}’s original story`} /><p>{members[contribution.authorId].name}’s original story</p><small>{languageLabel(contribution.originalLanguage)} · Original recording</small></div>
+    <div className="contribution-player"><AudioPlayer src={contribution.audioUrl} durationMs={contribution.durationMs} label={`${members[contribution.authorId].name}’s original story`} /><p>{members[contribution.authorId].name}{contribution.provenance === 'temporary' ? ' (demo persona)' : ' (sample)'}’s original story</p><small>{languageLabel(contribution.originalLanguage)} · Original recording</small></div>
     <div className="message-translation-preview"><p className="sol-eyebrow">{languageLabel(contribution.originalLanguage)} → {target ? languageLabel(target) : 'Translation pending'}</p><p>{target ? contribution.translations[target] : contribution.transcript}</p><button className="sol-text-link" aria-expanded={originalOpen} onClick={() => setOriginalOpen((value) => !value)}>{originalOpen ? 'Hide transcript' : 'See original transcript'} →</button>{originalOpen && <ContributionTranscript contribution={contribution} />}<Link href={memoryHref(contribution.circleId, contribution.artifactId, contribution.contributionId)} className="sol-text-link">View this voice in the memory →</Link></div>
   </div>;
 }
@@ -44,16 +44,16 @@ function ConversationMessage({ message, circle }: { message: Message; circle: Sa
   const { state, openRecorder } = useDemo();
   const contribution = message.kind === 'voice' ? state.contributions.find((item) => item.contributionId === message.contributionId && item.circleId === circle.id && item.artifactId === message.artifactId) : undefined;
   return <div id={message.messageId} className={`conversation-message message-${message.kind} ${message.senderId === 'sofia' ? 'message-outgoing' : 'message-incoming'}`} data-message-id={message.messageId} data-artifact-id={message.kind === 'text' ? undefined : message.artifactId}>
-    {message.kind === 'text' && <div className="message-bubble"><p>{message.text}</p><small>{members[message.senderId].name} · {timestamp(message)}</small></div>}
+    {message.kind === 'text' && <div className="message-bubble"><p>{message.text}</p><small>{members[message.senderId].name}{message.provenance === 'temporary' ? ' (demo persona)' : ' (sample)'} · {timestamp(message)}</small></div>}
     {message.kind === 'artifact' && <ArtifactMessage circle={circle} artifactId={message.artifactId} />}
     {message.kind === 'request' && <article className="story-request-card" data-request-id={message.messageId}>
       <p className="sol-eyebrow">A LITTLE STORY REQUEST</p><h3>{message.prompt === 'What made Sundays feel like home?' ? <>What made Sundays<br />feel like home?</> : message.prompt}</h3><p>For {members[message.recipientId].name} · Reply whenever you like.</p>
-      <Button className="sol-button" onClick={() => openRecorder({ circleId: circle.id, artifactId: message.artifactId, threadId: message.threadId, requestMessageId: message.messageId, authorId: message.recipientId })}>Record a story</Button>
+      <Button className="sol-button" onClick={() => openRecorder({ circleId: circle.id, artifactId: message.artifactId, threadId: message.threadId, requestMessageId: message.messageId, previewPersonaId: message.recipientId })}>Record a story</Button>
       <Link className="request-artifact-link" href={memoryHref(circle.id, message.artifactId)}>About “{getArtifact(circle.id, message.artifactId)?.title}” →</Link>
       {state.contributions.some((item) => item.provenance === 'temporary' && item.requestMessageId === message.messageId) && <p role="status">Voice response preview added</p>}
     </article>}
     {message.kind === 'voice' && (contribution ? <VoiceMessage contribution={contribution} /> : <p role="alert">This temporary voice preview is no longer available.</p>)}
-    {message.kind !== 'text' && <p className={`message-attribution ${message.kind === 'artifact' && message.provenance === 'fixture' ? 'sr-only' : ''}`}>{members[message.senderId].name} · {timestamp(message)}{message.provenance === 'temporary' ? ' · Temporary preview' : ''}</p>}
+    {message.kind !== 'text' && <p className={`message-attribution ${message.kind === 'artifact' && message.provenance === 'fixture' ? 'sr-only' : ''}`}>{members[message.senderId].name}{message.provenance === 'temporary' ? ' (demo persona)' : ' (sample)'} · {timestamp(message)}{message.provenance === 'temporary' ? ' · Temporary preview' : ''}</p>}
     {message.kind === 'text' && message.provenance === 'temporary' && <p className="message-attribution">Temporary preview · not sent to another account</p>}
   </div>;
 }
@@ -100,10 +100,10 @@ export function FamilyMessages({ circle, initialRequestId }: { circle: SampleCir
     const lastArtifact = [...messages].reverse().find((item) => item.kind !== 'text');
     const artifactId = draftArtifactId || lastArtifact?.artifactId;
     if (!artifactId) { setPickerIntent('record'); setPickerOpen(true); return; }
-    openRecorder({ circleId: circle.id, artifactId, threadId, authorId: 'sofia' });
+    openRecorder({ circleId: circle.id, artifactId, threadId, previewPersonaId: 'sofia' });
   }
   function pickerAction(action: 'attach' | 'share' | 'request') {
-    if (pickerIntent === 'record') openRecorder({ circleId: circle.id, artifactId: selectedArtifactId, threadId, authorId: 'sofia' });
+    if (pickerIntent === 'record') openRecorder({ circleId: circle.id, artifactId: selectedArtifactId, threadId, previewPersonaId: 'sofia' });
     else if (action === 'request') requestStory(circle.id, selectedArtifactId, threadId);
     else if (action === 'share') shareArtifact(circle.id, selectedArtifactId, threadId);
     else setDraftArtifactId(selectedArtifactId);
@@ -126,6 +126,7 @@ export function FamilyMessages({ circle, initialRequestId }: { circle: SampleCir
             <p className="conversation-preview-note">Preview only · Changes clear on refresh or when you leave the demo. Nothing is saved or shared between accounts.</p>
           </div>
           <form className="message-composer" onSubmit={submit} aria-label="Message composer">
+            <p className="persona-disclosure">Demo personas only · Names do not identify the signed-in author. Nothing is delivered.</p>
             {draftArtifactId && <div className="composer-artifact"><span>{getArtifact(circle.id, draftArtifactId)?.title}</span><button className="sol-icon-button" type="button" aria-label="Remove attached memory" onClick={() => setDraftArtifactId(null)}><X size={18} /></button></div>}
             <div className="composer-row"><button type="button" className="sol-icon-button" aria-label="Attach a memory or request a story" onClick={() => { setPickerIntent('attach'); setPickerOpen(true); }}><MessageIcon name="attach" /></button>
               <label className="composer-input"><span className="sr-only">Message</span><textarea rows={1} value={text} onChange={(event) => setText(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder="Message or ask for a memory…" /></label>

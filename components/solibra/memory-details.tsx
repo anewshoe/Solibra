@@ -16,7 +16,7 @@ import { formatDuration } from './voice/use-voice-preview';
 
 function VoiceStory({ contribution }: { contribution: Contribution }) {
   return <>
-    <div className="voice-attribution"><MemberAvatar memberId={contribution.authorId} size={48} /><div><p>{contribution.authorId === 'elena' ? 'Abuela Elena' : members[contribution.authorId].name}</p><small>{contribution.provenance === 'temporary' ? 'Temporary preview' : 'Recorded in Español'} · {formatDuration(contribution.durationMs)}</small></div></div>
+    <div className="voice-attribution"><MemberAvatar memberId={contribution.authorId} size={48} /><div><p>{contribution.authorId === 'elena' ? 'Abuela Elena' : members[contribution.authorId].name}</p><small>{contribution.provenance === 'temporary' ? 'Demo persona · temporary preview, not authenticated authorship' : 'Sample · Recorded in Español'} · {formatDuration(contribution.durationMs)}</small></div></div>
     <div className="contribution-player"><AudioPlayer src={contribution.audioUrl} durationMs={contribution.durationMs} label={`${members[contribution.authorId].name}’s original story`} /><p>{members[contribution.authorId].name}’s original story</p><small>{contribution.originalLanguage.toUpperCase()} · Original recording</small></div>
     <ContributionTranscript key={contribution.contributionId} contribution={contribution} />
   </>;
@@ -32,7 +32,7 @@ export function MemoryDetails({ circle, artifact, initialContributionId }: { cir
   const contribution = contributions.find((item) => item.contributionId === selected) || contributions[0];
   const requestedUnavailable = !!initialContributionId && !contributions.some((item) => item.contributionId === initialContributionId);
   const isKitchen = artifact.artifactId === PRIMARY_ARTIFACT_ID;
-  const addVoice = () => openRecorder({ circleId: circle.id, artifactId: artifact.artifactId, threadId: 'elena', authorId: 'sofia' });
+  const addVoice = () => openRecorder({ circleId: circle.id, artifactId: artifact.artifactId, threadId: 'elena', previewPersonaId: 'sofia' });
   function share(request: boolean) {
     const requestId = request ? requestStory(circle.id, artifact.artifactId) : undefined;
     if (!request) shareArtifact(circle.id, artifact.artifactId);
@@ -50,7 +50,7 @@ export function MemoryDetails({ circle, artifact, initialContributionId }: { cir
             <h2 id="perspectives-title">One memory. Many points of view.</h2>
             <article className="family-perspective"><MemberAvatar memberId="sofia" /><div><h3>Sofía · Added {artifact.category === 'recipe' ? 'the recipe' : 'the photograph'}</h3><p>{isKitchen ? 'I found this in Mamá’s blue photo album. Abuela, is this when you taught me to press the tortillas?' : 'A family recipe, ready for another story.'}</p></div></article>
             {isKitchen && <article className="family-perspective"><MemberAvatar memberId="mateo" /><div><h3>Mateo · Added a memory</h3><p>That little radio! Abuelo would turn it up when his favorite song came on.</p></div></article>}
-            {contributions.filter((item) => item.provenance === 'temporary').map((item) => <article className="family-perspective" key={item.contributionId} data-contribution-id={item.contributionId}><MemberAvatar memberId={item.authorId} /><div><h3>{members[item.authorId].name} · Temporary voice preview</h3><p>{item.transcript}</p><button className="sol-text-link" onClick={() => { setSelected(item.contributionId); document.getElementById('memory-voices')?.scrollIntoView({ block: 'start' }); }}>Hear this perspective →</button></div></article>)}
+            {contributions.filter((item) => item.provenance === 'temporary').map((item) => <article className="family-perspective" key={item.contributionId} data-contribution-id={item.contributionId}><MemberAvatar memberId={item.authorId} /><div><h3>{members[item.authorId].name} · Demo persona · Temporary voice preview</h3><p>{item.transcript}</p><button className="sol-text-link" onClick={() => { setSelected(item.contributionId); document.getElementById('memory-voices')?.scrollIntoView({ block: 'start' }); }}>Hear this perspective →</button></div></article>)}
           </section>
           <button className="sol-outline-button request-memory-story" onClick={() => share(true)}>Ask Elena for a story about this memory</button>
         </section>
@@ -58,7 +58,7 @@ export function MemoryDetails({ circle, artifact, initialContributionId }: { cir
           <h2>{contribution?.authorId === 'elena' ? 'Hear it from her.' : 'Hear it in their own words.'}</h2>
           {requestedUnavailable && <p className="voice-help" role="status">The requested voice preview is unavailable. Temporary recordings clear on refresh. {contribution ? 'Showing an available sample story instead.' : 'You can record a new preview.'}</p>}
           {contribution ? <VoiceStory key={contribution.contributionId} contribution={contribution} /> : <p>This memory is waiting for its first voice. Record a temporary preview to hear it here.</p>}
-          {contributions.length > 1 && <label className="contribution-choice"><span>Other voices in this memory</span><select aria-label="Choose voice contribution" value={contribution?.contributionId} onChange={(event) => setSelected(event.target.value)}>{contributions.map((item) => <option key={item.contributionId} value={item.contributionId}>{members[item.authorId].name} · {item.provenance === 'temporary' ? 'temporary preview' : item.contributionId === originalContributionId(circle.id) ? 'original story' : 'conversation reply'}</option>)}</select></label>}
+          {contributions.length > 1 && <label className="contribution-choice"><span>Other voices in this memory</span><select aria-label="Choose voice contribution" value={contribution?.contributionId} onChange={(event) => setSelected(event.target.value)}>{contributions.map((item) => <option key={item.contributionId} value={item.contributionId}>{members[item.authorId].name} · {item.provenance === 'temporary' ? 'demo persona · temporary preview' : item.contributionId === originalContributionId(circle.id) ? 'original story' : 'conversation reply'}</option>)}</select></label>}
           <Button className="sol-button" onClick={addVoice}>Add your voice</Button>
         </aside>
       </div>

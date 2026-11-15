@@ -28,9 +28,9 @@ export interface SampleMemory {
 }
 
 export const sampleCircles: SampleCircle[] = [
-  { id: 'rivera-family', title: 'The Rivera family', description: 'The stories, recipes, and little things that make us, us.', collection: 'family', memoryCount: 38, participantCount: 6, sharedWithMe: false, lastVisited: '2026-11-14' },
-  { id: 'abuelas-kitchen', title: 'Abuela’s kitchen', description: 'A pinch of home, and recipes made with love.', collection: 'kitchen', memoryCount: 12, participantCount: 4, sharedWithMe: true, lastVisited: '2026-11-12' },
-  { id: 'little-adventures', title: 'Our little adventures', description: 'The places we go and the little treasures we bring home.', collection: 'adventures', memoryCount: 24, participantCount: 3, sharedWithMe: false, lastVisited: '2026-11-13' }
+  { id: 'rivera-family', title: 'The Rivera family', description: 'From Oaxaca Sundays to our newest traditions, the Rivera family’s stories live here.', collection: 'family', memoryCount: 38, participantCount: 6, sharedWithMe: false, lastVisited: '2026-11-14' },
+  { id: 'abuelas-kitchen', title: 'Abuela’s kitchen', description: 'Abuela’s handwritten recipes, tortilla lessons, and the voices around her kitchen table.', collection: 'kitchen', memoryCount: 12, participantCount: 4, sharedWithMe: true, lastVisited: '2026-11-12' },
+  { id: 'little-adventures', title: 'Our little adventures', description: 'Road trips, seaside walks, and the little discoveries we bring home together.', collection: 'adventures', memoryCount: 24, participantCount: 3, sharedWithMe: false, lastVisited: '2026-11-13' }
 ];
 
 const familyMemories: SampleMemory[] = [

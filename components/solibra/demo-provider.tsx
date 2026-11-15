@@ -6,7 +6,8 @@ import { getArtifact, type Contribution, type MemberId, type ThreadId } from '@/
 import { useVoicePreview } from './voice/use-voice-preview';
 import { VoiceRecorderDialog } from './voice/recorder-dialog';
 
-export interface RecordingTarget { circleId: string; artifactId: string; threadId: ThreadId; requestMessageId?: string; authorId: MemberId }
+// Persona IDs belong to the fixture demo, never to the authenticated session.
+export interface RecordingTarget { circleId: string; artifactId: string; threadId: ThreadId; requestMessageId?: string; previewPersonaId: MemberId }
 interface DemoContextValue {
   state: DemoState;
   sendText: (circleId: string, threadId: ThreadId, text: string) => void;
@@ -49,7 +50,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   function openRecorder(next: RecordingTarget) {
     if (!getArtifact(next.circleId, next.artifactId)) return;
     const hasDraft = voice.recorder.audioBlob || voice.recorder.status === 'recording' || voice.recorder.status === 'requesting' || voice.recorder.status === 'stopping';
-    if (hasDraft && target && (target.circleId !== next.circleId || target.artifactId !== next.artifactId || target.requestMessageId !== next.requestMessageId)) setPendingTarget(next);
+    if (hasDraft && target && (target.circleId !== next.circleId || target.artifactId !== next.artifactId || target.requestMessageId !== next.requestMessageId || target.threadId !== next.threadId || target.previewPersonaId !== next.previewPersonaId)) setPendingTarget(next);
     else { setTarget(next); setPendingTarget(null); }
     setOpen(true);
   }
@@ -61,10 +62,10 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   function attach() {
     if (!target || !voice.transcript || !voice.recorder.audioBlob || !voice.draftId || voice.submitting || attachedRef.current === voice.draftId) return;
     const audioUrl = URL.createObjectURL(voice.recorder.audioBlob); urlsRef.current.add(audioUrl);
-    const contribution: Contribution = { contributionId: voice.draftId, circleId: target.circleId, artifactId: target.artifactId, authorId: target.authorId, requestMessageId: target.requestMessageId,
+    const contribution: Contribution = { contributionId: voice.draftId, circleId: target.circleId, artifactId: target.artifactId, authorId: target.previewPersonaId, requestMessageId: target.requestMessageId,
       provenance: 'temporary', createdAt: now(), audioUrl, audioBlob: voice.recorder.audioBlob, durationMs: voice.recorder.elapsedMs,
       ...voice.transcript, translations: voice.result ? { [voice.result.targetLanguage]: voice.result.translation } : {} };
-    dispatch({ type: 'contribution', contribution, message: { kind: 'voice', messageId: id('message'), circleId: target.circleId, artifactId: target.artifactId, threadId: target.threadId, senderId: target.authorId, contributionId: contribution.contributionId, createdAt: contribution.createdAt, provenance: 'temporary' } });
+    dispatch({ type: 'contribution', contribution, message: { kind: 'voice', messageId: id('message'), circleId: target.circleId, artifactId: target.artifactId, threadId: target.threadId, senderId: target.previewPersonaId, contributionId: contribution.contributionId, createdAt: contribution.createdAt, provenance: 'temporary' } });
     attachedRef.current = voice.draftId; setAttachedId(voice.draftId);
   }
   return (

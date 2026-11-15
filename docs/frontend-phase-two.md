@@ -86,3 +86,7 @@ Physical microphone capture, decoding/playback on real Chrome/Safari/mobile devi
 The untracked `saas-starter/` checkout remains untouched. Unrelated untracked files with `2` suffixes appeared during this work (including voice hooks/libraries/documentation, scripts, tests, and editor settings); they were not created or edited by this phase and are not part of its change set.
 
 Next: agree on the messaging, contribution, and private-media persistence contracts with the backend owner, then connect these presentation components through an adapter and run the authenticated physical-device demo flow. Do not change the existing voice pipeline to accommodate the UI.
+
+## Pre-merge cleanup
+
+See [the final frontend review](frontend-pre-merge-review.md) for removal of the subsequently tracked duplicate files, explicit demo-persona attribution, draft-target protection, current-main compatibility, and final checks. The earlier workspace notes describe the state during phase two.

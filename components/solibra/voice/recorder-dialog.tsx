@@ -21,7 +21,7 @@ export function VoiceRecorderDialog({ open, onClose, target, pendingTarget, voic
   return <Dialog.Root open={open} onOpenChange={(value) => { if (!value) onClose(); }}>
     <Dialog.Overlay className="sol-dialog-overlay" />
     <Dialog.Content className="sol-dialog voice-dialog" aria-describedby="voice-dialog-description">
-      <Dialog.Title>A story for {target.authorId === 'elena' ? 'Abuela' : 'your people'}</Dialog.Title>
+      <Dialog.Title>A story for {target.previewPersonaId === 'elena' ? 'Abuela' : 'your people'}</Dialog.Title>
       <Dialog.Description id="voice-dialog-description">A temporary voice preview for “{artifact.title}”.</Dialog.Description>
       {pendingTarget ? <div className="voice-switch-draft"><p>You already have a draft for this memory. Keep it, or discard it before changing the story request.</p><Button className="sol-button" onClick={onKeepTarget}>Keep current draft</Button><button className="sol-outline-button" onClick={onSwitchTarget}>Discard draft & switch</button></div> : <>
         <section className="voice-recorder" aria-label="Story recorder">
@@ -49,7 +49,7 @@ export function VoiceRecorderDialog({ open, onClose, target, pendingTarget, voic
             {voice.result && <><h4>{languageLabel(voice.result.targetLanguage)} translation</h4><p>{voice.result.translation}</p></>}
           </div>}
         </section>}
-        <p className="voice-help">Preview attribution: {members[target.authorId].name}. Nothing is saved or sent to another account.</p>
+        <p className="voice-help">Demo persona (not your signed-in identity): {members[target.previewPersonaId].name}. Nothing is saved or sent to another account.</p>
         <Button className="sol-button voice-use-preview" onClick={onAttach} disabled={!voice.transcript || voice.submitting || attached}>{attached ? 'Temporary preview added' : !recorder.audioBlob ? 'Record before previewing' : 'Use temporary preview'}</Button>
         {attached && <p role="status">Available in this tab’s conversation and <Link onClick={onClose} href={memoryHref(target.circleId, target.artifactId, voice.draftId || undefined)}>memory details</Link>. Refreshing clears the preview.</p>}
         {recorder.audioBlob && <button className="sol-text-link" onClick={voice.discard}>Discard recording</button>}
