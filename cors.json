@@ -1,0 +1,15 @@
+
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": [
+        "http://localhost:3000",
+        "https://solibra-two.vercel.app"
+      ],
+      "AllowedMethods": ["POST"],
+      "AllowedHeaders": ["*"],
+      "MaxAgeSeconds": 300
+    }
+  ]
+}
+
