@@ -220,3 +220,16 @@
 @media (prefers-reduced-motion: reduce) { .recording-dot { animation: none; } }
 
 .persona-disclosure { margin: 0 0 6px; color: var(--sol-secondary); font-size: 11px; line-height: 1.4; }
+
+/* Real Nook conversations reuse the existing conversation geometry. */
+.real-conversation .conversation-sidebar nav > a { display: block; padding: 16px; min-height: 48px; border-radius: 16px; overflow-wrap: anywhere; }
+.real-conversation .conversation-sidebar [aria-current="page"] { background: var(--sol-rose); }
+.real-conversation-symbol { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; background: var(--sol-rose); }
+.real-conversation .conversation-heading h2 { overflow-wrap: anywhere; }
+.real-open-nook { min-height: 44px; display: inline-flex; align-items: center; font-size: 12px; }
+.real-message-help { font-size: 11px; color: var(--sol-secondary); }
+.real-conversation .message-bubble { max-width: min(520px,100%); }
+.real-conversation .real-message-artifact { font-size: 13px; border-top: 1px solid currentColor; padding-top: 8px; }
+.real-conversation .message-composer [role="alert"] { padding-block: 8px; font-size: 13px; }
+.real-conversation button:disabled { opacity: .6; }
+@media(max-width:359px) { .real-conversation-symbol { display: none; } .real-open-nook { max-width: 44px; } }

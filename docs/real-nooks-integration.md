@@ -65,3 +65,7 @@ Actual browser checks: signed-out Library at 320×844, 390×844 and 1440×1000 w
 Use an approved development database and multiple real accounts to verify actual list privacy, create-to-Library appearance, owner description saves and member denial, member counts, intended-recipient discovery/acceptance and resulting membership, revoked/inaccessible Nooks, sign-out/account switching, authenticated mobile layouts and keyboard behavior. No production Neon mutations were run. The backend suites exercise controlled database/session behavior and do not replace live transaction testing.
 
 No backend contract mismatch was found for this phase. The existing API deliberately lacks window category/color/count/visit metadata and an activity feed; those fields are not invented. Artifact API has private storage references rather than display URLs, so metadata-only rendering is intentional. Media uploads/storage, voice persistence, full conversation integration and new memory creation remain owned by their separate phases/teammate.
+
+## Messaging follow-up
+
+Real numeric Nooks now open persistent group conversations through `/messages/{nookId}`. See [Real Nook group messaging](./real-messaging-integration.md) for implementation boundaries, verification, and remaining live testing. The earlier phase's messaging-selector limitation is superseded by this follow-up; demo slug conversations remain separate.
