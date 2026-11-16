@@ -6,8 +6,31 @@ import { getUser, getTeamForUser } from '@/lib/db/queries';
 import { SWRConfig } from 'swr';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.solibra.club'),
   title: 'Solibra',
-  description: 'Preserving memories, connecting generations.'
+  description: 'A private, multilingual library for preserving memories, sharing stories, and connecting generations.',
+  openGraph: {
+    type: 'website',
+    siteName: 'Solibra',
+    title: 'Solibra — Every memory has more than one voice.',
+    description: 'A private, multilingual library for preserving memories, sharing stories, and connecting generations.',
+    url: 'https://www.solibra.club',
+    images: [{
+      url: '/solibra/solibra-social-preview.png',
+      width: 1200,
+      height: 630,
+      alt: 'Solibra wordmark with its waving yellow sun mascot and colorful ribbon on a dark burgundy background.'
+    }]
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Solibra — Every memory has more than one voice.',
+    description: 'A private, multilingual library for preserving memories, sharing stories, and connecting generations.',
+    images: [{
+      url: '/solibra/solibra-social-preview.png',
+      alt: 'Solibra wordmark with its waving yellow sun mascot and colorful ribbon on a dark burgundy background.'
+    }]
+  }
 };
 
 export const viewport: Viewport = {
